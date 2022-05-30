@@ -1,0 +1,86 @@
+$EXO Governance Token
+
+Max Supply: 10 Billion Tokens
+
+Issuance: 1 Billion Tokens Airdropped. 1 Billion Tokens ICO. 
+
+Burning: None
+
+Inflation: Staking Model
+
+Floating Supply: Non-existent
+
+Staking: Soft-Lock
+
+Hard-Lock, with longer periods getting higher rewards. Higher amounts also get higher rewards. Nodes. Those who hold enough $EXO also generate a little $GCRED.
+
+Treasury:
+	Staking Nodes: 1 Billion Tokens Staked providing extra rewards to Hard-Lock Stakers and Big Stakers
+	Development: 2 Billion Tokens kept in the treasury for developing the Ecosystem
+	Liquidity: Used to provide on&off ramps for EXO on Exchanges
+
+
+Voting: Holders will vote with tokens. Bigger Nodes will have more voting power.
+
+
+Wrapping/Bridging:Bridging between ADA, VET and ETH. VET and ETH is the priority.
+
+Exchanges: DEX first. On VeChain, then when crosschain with ETH, also ETH Dex’s
+
+
+
+Mechanics:.
+Motivations:
+Systems:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+$GCRED In-Game Currency Token
+
+Issuance: P2E Earnings, Airdrop, Staking
+
+Primary Use-Case: Upgrading Items, Buying Skins, Entering Tournaments, Accessing Restricted Areas, Naming Planets & Items
+
+Secondary Use-Case: P2P Economy & Marketplaces
+
+Burning: Primary Use-Case transactions burn GCRED. In-Game Mechanic to burn tokens to receive prizes.
+
+Inflation: P2E Earnings
+
+
+Floating Supply: Exists. Supply will be dynamic based on P2E Inflation and Transaction Burning
+
+Staking: No Staking
+
+Treasury:
+	Staking Nodes: No Staking
+	Development: Minority of In-Game transactions returned to game development fund.
+	Liquidity: Market Dependent. Very low supply initially, growing as the game goes on
+
+
+Voting: No Voting
+
+
+Wrapping/Bridging: Bridging between ADA, VET and ETH. VET and ETH is the priority.
+
+Exchanges: DEX first. On VeChain, then when crosschain with ETH, also ETH Dex’s
+
+
+
+Mechanics:
+
+
+Motivations:
+Systems:
