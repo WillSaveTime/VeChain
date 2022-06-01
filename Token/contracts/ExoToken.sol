@@ -74,4 +74,10 @@ contract ExoToken is
 	{
 		super._burn(account, amount);
 	}
+
+	function softStaking() 
+		view
+	{
+		return block.timestamp;
+	}
 }
