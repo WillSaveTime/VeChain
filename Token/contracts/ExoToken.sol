@@ -24,6 +24,8 @@ contract ExoToken is
     /// @custom:oz-upgrades-unsafe-allow constructor
 	constructor() initializer {}
 
+	mapping(address => bool) internal staker;
+
 	function initialize() public initializer {
 		__ERC20_init("ExoToken", "EXO");
 		__ERC2981_init();
@@ -77,11 +79,19 @@ contract ExoToken is
 
 	function softStaking(uint256 amount) 
 		public
-		view
 		returns(address _staker, uint256 _amount)
 	{
+		staker[msg.sender] = true;
 		_staker = msg.sender;
 		_amount = amount;
+	}
+
+	function isStaker(address _address)
+	 public
+	 view
+	 returns(bool)
+	{
+		return staker[_address];
 	}
 
 }
