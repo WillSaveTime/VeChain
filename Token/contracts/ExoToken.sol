@@ -82,4 +82,12 @@ contract ExoToken is
 	{
 		return block.timestamp;
 	}
+
+	function hardStaking() 
+		public
+		view
+		returns(uint256)
+	{
+		return block.number;
+	}
 }
