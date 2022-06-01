@@ -76,7 +76,9 @@ contract ExoToken is
 	}
 
 	function softStaking() 
+		public
 		view
+		returns(uint256)
 	{
 		return block.timestamp;
 	}
