@@ -77,21 +77,4 @@ contract ExoToken is
 		super._burn(account, amount);
 	}
 
-	function softStaking(uint256 amount) 
-		public
-		returns(address _staker, uint256 _amount)
-	{
-		staker[msg.sender] = true;
-		_staker = msg.sender;
-		_amount = amount;
-	}
-
-	function isStaker(address _address)
-	 public
-	 view
-	 returns(bool)
-	{
-		return staker[_address];
-	}
-
 }
