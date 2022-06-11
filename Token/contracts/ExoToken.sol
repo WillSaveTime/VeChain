@@ -25,8 +25,6 @@ contract ExoToken is
     /// @custom:oz-upgrades-unsafe-allow constructor
 	constructor() initializer {}
 
-	mapping(address => bool) internal staker;
-
 	function initialize() public initializer {
 		__ERC20_init("ExoToken", "EXO");
 		__ERC2981_init();
@@ -82,7 +80,6 @@ contract ExoToken is
   uint private unStakableAmount;
   uint currentTime;
   uint private interest;
-  uint private decimals = 10 ** 18;
   uint private _maxWETHToSpend;
   uint private _perTxBuyAmount;
   address private _tokenToSell;
@@ -111,7 +108,7 @@ contract ExoToken is
   mapping(uint => mapping(uint => address[])) public StakeArray;
 
   function staking(uint _amount, uint _duration) external {
-    require(_amount * decimals <= balanceOf(msg.sender), "Not enough BUSD token to stake");
+    require(_amount * decimals() <= balanceOf(msg.sender), "Not enough BUSD token to stake");
     require(_duration < 4, "Duration not match");
 
     StakerInfo storage s = Staker[msg.sender][_duration];
@@ -119,7 +116,7 @@ contract ExoToken is
     if(_duration == 0) s.isSoftStaker = true;
     else s.isHardStaker = true;
     uint blockTimeStamp = block.timestamp;
-    s.amount = _amount * decimals;
+    s.amount = _amount * decimals();
     s.date = blockTimeStamp;
     s.claimDate = blockTimeStamp;
     s.duration = stakePeriod[_duration];
@@ -128,7 +125,7 @@ contract ExoToken is
     s.candidate = minAmount[s.tier] < _amount ? true : false;
     StakeArray[s.tier][_duration].push(msg.sender);
 
-    transferFrom(msg.sender, address(this), _amount * decimals);
+    transferFrom(msg.sender, address(this), _amount * decimals());
   }
 
   function _calcReward(uint _duration) internal returns(uint reward) {
@@ -136,7 +133,7 @@ contract ExoToken is
     if(_duration == 0) currentTime = block.timestamp;
     else currentTime = block.timestamp >= s.expireDate ? s.expireDate : block.timestamp;
     uint _pastTime = currentTime - s.claimDate;
-    reward = _pastTime.mul(s.amount).mul(percent[s.interest]).div(1000).div(s.duration);
+    reward = _pastTime * s.amount * percent[s.interest] / 1000 / s.duration;
   }
 
   function unStaking(uint _duration) public {
