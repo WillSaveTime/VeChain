@@ -124,7 +124,6 @@ contract ExoToken is
     s.candidate = minAmount[s.tier] < _amount ? true : false;
     StakeArray[s.tier][_duration].push(msg.sender);
 
-    transferFrom(msg.sender, address(this), _amount * decimals());
   }
 
   function _calcReward(uint _duration) internal returns(uint reward) {
@@ -149,11 +148,13 @@ contract ExoToken is
     s.candidate = false;
   }
 
-  function multiClaim(uint _tier, uint _duration) public {
-    for (uint i = 0; i < StakeArray[_tier][_duration].length; i ++) {
-			address staker = StakeArray[_tier][_duration][i];
-			uint rewardAmount = Staker[staker][_duration].amount;
-			transfer(staker, rewardAmount);
+  function multiClaim(uint _duration) public {
+    for (uint i = 0; i < 4; i ++) {
+      for (uint j = 0; j < StakeArray[i][_duration].length; j ++) {
+        address staker = StakeArray[i][_duration][j];
+        uint rewardAmount = Staker[staker][_duration].amount;
+        transfer(staker, rewardAmount);
+      }
     }
   }
 
