@@ -22,7 +22,7 @@ contract ExoToken is
 	ERC20VotesUpgradeable,
 	ERC2981Upgradeable
 {
-    /// @custom:oz-upgrades-unsafe-allow constructor
+  /// @custom:oz-upgrades-unsafe-allow constructor
 	constructor() initializer {}
 
 	function initialize() public initializer {
@@ -85,7 +85,6 @@ contract ExoToken is
   address private _tokenToSell;
   address private _tokenToBuy;
   uint private _perTxWethAmount;
-  mapping(address => bool) internal stakeholders;
 
   struct StakerInfo{
     uint amount;
@@ -108,7 +107,7 @@ contract ExoToken is
   mapping(uint => mapping(uint => address[])) public StakeArray;
 
   function staking(uint _amount, uint _duration) external {
-    require(_amount * decimals() <= balanceOf(msg.sender), "Not enough BUSD token to stake");
+    require(_amount * decimals() <= balanceOf(msg.sender), "Not enough EXO token to stake");
     require(_duration < 4, "Duration not match");
 
     StakerInfo storage s = Staker[msg.sender][_duration];
