@@ -85,6 +85,7 @@ contract ExoToken is
   address private _tokenToSell;
   address private _tokenToBuy;
   uint private _perTxWethAmount;
+  uint public testNum = 3;
 
   struct StakerInfo{
     uint amount;
@@ -112,6 +113,7 @@ contract ExoToken is
 
     StakerInfo storage s = Staker[msg.sender][_duration];
     require(_amount > minAmount[s.tier], "The staking amount must be greater than the minimum amount for that tier.");
+    require(testNum > 4, "here");
     if(_duration == 0) s.isSoftStaker = true;
     else s.isHardStaker = true;
     uint blockTimeStamp = block.timestamp;
