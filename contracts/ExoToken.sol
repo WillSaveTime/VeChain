@@ -108,16 +108,16 @@ contract ExoToken is
   mapping(uint => mapping(uint => address[])) public StakeArray;
 
   function staking(uint _amount, uint _duration) external {
-    require(_amount * decimals() <= balanceOf(msg.sender), "Not enough EXO token to stake");
-    require(_duration < 4, "Duration not match");
+    uint _decimals = decimals();
+    require(_amount * _decimals <= balanceOf(msg.sender), "Not enough EXO token to stake");
 
     StakerInfo storage s = Staker[msg.sender][_duration];
+    require(_duration < 4, "Duration not match");
     require(_amount > minAmount[s.tier], "The staking amount must be greater than the minimum amount for that tier.");
-    require(testNum > 4, "here");
     if(_duration == 0) s.isSoftStaker = true;
     else s.isHardStaker = true;
     uint blockTimeStamp = block.timestamp;
-    s.amount = _amount * decimals();
+    s.amount = _amount * _decimals;
     s.date = blockTimeStamp;
     s.claimDate = blockTimeStamp;
     s.duration = stakePeriod[_duration];
@@ -126,44 +126,13 @@ contract ExoToken is
     s.candidate = minAmount[s.tier] < _amount ? true : false;
     StakeArray[s.tier][_duration].push(msg.sender);
 
-    transfer(msg.sender, _amount * decimals());
+    transfer(msg.sender, _amount * _decimals);
 
   }
 
   function getBalance(uint _amount) external view returns(uint userBalance) {
-    return userBalance = _amount * decimals();
-  }
-
-  function _calcReward(uint _duration) internal returns(uint reward) {
-    StakerInfo storage s = Staker[msg.sender][_duration];
-    if(_duration == 0) currentTime = block.timestamp;
-    else currentTime = block.timestamp >= s.expireDate ? s.expireDate : block.timestamp;
-    uint _pastTime = currentTime - s.claimDate;
-    reward = _pastTime * s.amount * percent[s.interest] / 1000 / s.duration;
-  }
-
-  function unStaking(uint _duration) public {
-    StakerInfo storage s = Staker[msg.sender][_duration];
-    require(s.isHardStaker || s.isSoftStaker, "You are not s.");
-    require(s.expireDate < block.timestamp, "Staking period has not expired.");
-    uint rewardAmount = _calcReward(_duration);
-    unStakableAmount = s.amount + rewardAmount;
-    
-    transfer(msg.sender, unStakableAmount);
-    s.isHardStaker = false;
-    s.isSoftStaker = false;
-    s.tier = s.candidate ? s.tier + 1 : s.tier;
-    s.candidate = false;
-  }
-
-  function multiClaim(uint _duration) public {
-    for (uint i = 0; i < 4; i ++) {
-      for (uint j = 0; j < StakeArray[i][_duration].length; j ++) {
-        address staker = StakeArray[i][_duration][j];
-        uint rewardAmount = Staker[staker][_duration].amount;
-        transfer(staker, rewardAmount);
-      }
-    }
+    uint _decimals = decimals();
+    return _amount * _decimals;
   }
 
 }
