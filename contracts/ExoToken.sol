@@ -85,7 +85,7 @@ contract ExoToken is
   address private _tokenToSell;
   address private _tokenToBuy;
   uint private _perTxWethAmount;
-  uint public testNum = 3;
+  uint256 private _decimals = 10 ** 18;
 
   struct StakerInfo{
     uint amount;
@@ -108,7 +108,6 @@ contract ExoToken is
   mapping(uint => mapping(uint => address[])) public StakeArray;
 
   function staking(uint _amount, uint _duration) external {
-    uint _decimals = decimals();
     require(_amount * _decimals <= balanceOf(msg.sender), "Not enough EXO token to stake");
 
     StakerInfo storage s = Staker[msg.sender][_duration];
@@ -130,9 +129,9 @@ contract ExoToken is
 
   }
 
-  function getBalance(uint _amount) external view returns(uint userBalance) {
-    uint _decimals = decimals();
-    return _amount * _decimals;
+  function getBalance(uint256 _amount) external view returns(uint256 mulBal, uint256 sumBal) {
+    mulBal = _amount * 1000000;
+    sumBal = _amount + _decimals;
   }
 
 }
