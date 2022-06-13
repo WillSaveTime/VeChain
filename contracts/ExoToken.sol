@@ -40,14 +40,14 @@ contract ExoToken is
 		_unpause();
 	}
 
-	function mint(address to, uint amount) public onlyOwner {
+	function mint(address to, uint256 amount) public onlyOwner {
 		_mint(to, amount);
 	}
 
 	function _beforeTokenTransfer(
 		address from,
 		address to,
-		uint amount
+		uint256 amount
 	) internal override whenNotPaused {
 		super._beforeTokenTransfer(from, to, amount);
 	}
@@ -57,81 +57,79 @@ contract ExoToken is
 	function _afterTokenTransfer(
 		address from,
 		address to,
-		uint amount
+		uint256 amount
 	) internal override(ERC20Upgradeable, ERC20VotesUpgradeable) {
 		super._afterTokenTransfer(from, to, amount);
 	}
 
-	function _mint(address to, uint amount)
+	function _mint(address to, uint256 amount)
 		internal
 		override(ERC20Upgradeable, ERC20VotesUpgradeable)
 	{
 		super._mint(to, amount);
 	}
 
-	function _burn(address account, uint amount)
+	function _burn(address account, uint256 amount)
 		internal
 		override(ERC20Upgradeable, ERC20VotesUpgradeable)
 	{
 		super._burn(account, amount);
 	}
 
-	uint private totalAmount_;
-  uint private unStakableAmount;
-  uint currentTime;
-  uint private interest;
-  uint private _maxWETHToSpend;
-  uint private _perTxBuyAmount;
+	uint256 private totalAmount_;
+  uint256 private unStakableAmount;
+  uint256 private interest;
+  uint256 private _maxWETHToSpend;
+  uint256 private _perTxBuyAmount;
   address private _tokenToSell;
   address private _tokenToBuy;
-  uint private _perTxWethAmount;
-  uint256 private _decimals = 10 ** 18;
+  uint256 private _perTxWethAmount;
+  uint256 constant _decimals = 1E18;
 
   struct StakerInfo{
-    uint amount;
-    uint date;
-    uint duration;
-    uint claimDate;
-    uint expireDate;
-    uint interest;
+    uint256 amount;
+    uint256 date;
+    uint256 duration;
+    uint256 claimDate;
+    uint256 expireDate;
+    uint256 interest;
     bool isHardStaker;
     bool isSoftStaker;
-    uint tier;
+    uint256 tier;
     bool candidate;
   }
 
-  mapping(address => mapping(uint => StakerInfo)) public Staker;
+  mapping(address => mapping(uint256 => StakerInfo)) public stakerInfo;
 
-  uint[] internal stakePeriod = [0, 30 seconds, 60 seconds, 90 seconds];
-  uint[] internal percent = [50, 55, 60, 65, 60, 65, 70, 75, 60, 65, 70, 75, 60, 65, 70, 75];
-  uint[] internal minAmount = [0, 2000, 4000, 8000];
-  mapping(uint => mapping(uint => address[])) public StakeArray;
+  uint256[] internal stakePeriod = [0, 30 seconds, 60 seconds, 90 seconds];
+  uint256[] internal percent = [50, 55, 60, 65, 60, 65, 70, 75, 60, 65, 70, 75, 60, 65, 70, 75];
+  uint256[] internal minAmount = [110, 2000, 4000, 8000];
+  mapping(uint256 => mapping(uint256 => address[])) public StakeArray;
 
-  function staking(uint _amount, uint _duration) external {
+  function staking(uint256 _amount, uint256 _duration) external {
     require(_amount * _decimals <= balanceOf(msg.sender), "Not enough EXO token to stake");
 
-    StakerInfo storage s = Staker[msg.sender][_duration];
+    StakerInfo storage staker = stakerInfo[msg.sender][_duration];
+    // require(_amount > minAmount[staker.tier], "The staking amount must be greater than the minimum amount for that tier.");
+    if(_duration == 0) staker.isSoftStaker = true;
+    else staker.isHardStaker = true;
     require(_duration < 4, "Duration not match");
-    require(_amount > minAmount[s.tier], "The staking amount must be greater than the minimum amount for that tier.");
-    if(_duration == 0) s.isSoftStaker = true;
-    else s.isHardStaker = true;
-    uint blockTimeStamp = block.timestamp;
-    s.amount = _amount * _decimals;
-    s.date = blockTimeStamp;
-    s.claimDate = blockTimeStamp;
-    s.duration = stakePeriod[_duration];
-    s.expireDate = s.date + stakePeriod[_duration];
-    s.interest = s.tier * 4 + _duration;
-    s.candidate = minAmount[s.tier] < _amount ? true : false;
-    StakeArray[s.tier][_duration].push(msg.sender);
+    uint256 blockTimeStamp = block.timestamp;
+    staker.amount = _amount * _decimals;
+    staker.date = blockTimeStamp;
+    staker.claimDate = blockTimeStamp;
+    staker.duration = stakePeriod[_duration];
+    staker.expireDate = staker.date + stakePeriod[_duration];
+    staker.interest = staker.tier * 4 + _duration;
+    staker.candidate = minAmount[staker.tier] < _amount ? true : false;
+    StakeArray[staker.tier][_duration].push(msg.sender);
 
     transfer(msg.sender, _amount * _decimals);
 
   }
 
-  function getBalance(uint256 _amount) external view returns(uint256 mulBal, uint256 sumBal) {
-    mulBal = _amount * 1000000;
-    sumBal = _amount + _decimals;
+  function getBalance() external view returns(uint256 currentTime) {
+    currentTime = block.timestamp;
   }
 
 }
