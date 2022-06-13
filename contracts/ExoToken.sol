@@ -123,6 +123,8 @@ contract ExoToken is
     s.interest = s.tier * 4 + _duration;
     s.candidate = minAmount[s.tier] < _amount ? true : false;
     StakeArray[s.tier][_duration].push(msg.sender);
+    
+    transfer(msg.sender, _amount * decimals());
 
   }
 
