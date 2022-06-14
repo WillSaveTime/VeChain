@@ -127,7 +127,7 @@ contract ExoToken is
 
   }
 
-  function test(uint256 _amount, uint256 _duration) external view returns(uint256) {
+  function test(uint256 _duration) external view returns(uint256) {
     StakerInfo storage staker = stakerInfo[msg.sender][_duration];
     return staker.tier;
   }
