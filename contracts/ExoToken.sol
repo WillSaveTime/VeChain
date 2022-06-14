@@ -103,33 +103,33 @@ contract ExoToken is
 
   uint256[] internal stakePeriod = [0, 30 seconds, 60 seconds, 90 seconds];
   uint256[] internal percent = [50, 55, 60, 65, 60, 65, 70, 75, 60, 65, 70, 75, 60, 65, 70, 75];
-  uint256[] internal minAmount = [110, 2000, 4000, 8000];
+  uint256[] internal minAmount = [0, 2000, 4000, 8000];
   mapping(uint256 => mapping(uint256 => address[])) public StakeArray;
 
   function staking(uint256 _amount, uint256 _duration) external {
     require(_amount * _decimals <= balanceOf(msg.sender), "Not enough EXO token to stake");
+    require(_duration < 4, "Duration not match");
 
     StakerInfo storage staker = stakerInfo[msg.sender][_duration];
-    // require(_amount > minAmount[staker.tier], "The staking amount must be greater than the minimum amount for that tier.");
+    require(_amount > minAmount[staker.tier], "The staking amount must be greater than the minimum amount for that tier.");
     if(_duration == 0) staker.isSoftStaker = true;
     else staker.isHardStaker = true;
-    require(_duration < 4, "Duration not match");
     uint256 blockTimeStamp = block.timestamp;
     staker.amount = _amount * _decimals;
     staker.date = blockTimeStamp;
     staker.claimDate = blockTimeStamp;
-    staker.duration = stakePeriod[_duration];
-    staker.expireDate = staker.date + stakePeriod[_duration];
-    staker.interest = staker.tier * 4 + _duration;
-    staker.candidate = minAmount[staker.tier] < _amount ? true : false;
-    StakeArray[staker.tier][_duration].push(msg.sender);
+    // staker.duration = stakePeriod[_duration];
+    // staker.interest = staker.tier * 4 + _duration;
+    // staker.candidate = minAmount[staker.tier] < _amount ? true : false;
+    // StakeArray[staker.tier][_duration].push(msg.sender);
 
-    transfer(msg.sender, _amount * _decimals);
+    // transfer(msg.sender, _amount * _decimals);
 
   }
 
-  function getBalance() external view returns(uint256 currentTime) {
-    currentTime = block.timestamp;
+  function test(uint256 _amount, uint256 _duration) external view returns(uint256) {
+    StakerInfo storage staker = stakerInfo[msg.sender][_duration];
+    return staker.tier;
   }
 
 }
