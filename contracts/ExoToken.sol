@@ -110,7 +110,7 @@ contract ExoToken is
     require(_amount * _decimals <= balanceOf(msg.sender), "Not enough EXO token to stake");
     require(_duration < 4, "Duration not match");
 
-    StakerInfo storage staker = stakerInfo[msg.sender][_duration];
+    StakerInfo memory staker = stakerInfo[msg.sender][_duration];
     require(_amount > minAmount[staker.tier], "The staking amount must be greater than the minimum amount for that tier.");
     if(_duration == 0) staker.isSoftStaker = true;
     else staker.isHardStaker = true;
@@ -127,8 +127,8 @@ contract ExoToken is
 
   }
 
-  function test(uint256 _duration) external view returns(uint256) {
-    StakerInfo storage staker = stakerInfo[msg.sender][_duration];
+  function test1(uint256 _duration) external view returns(uint256) {
+    StakerInfo memory staker = stakerInfo[msg.sender][_duration];
     return staker.tier;
   }
 
