@@ -87,10 +87,9 @@ contract ExoToken is
   uint constant _decimals = 1E18;
   uint private blockTimeStamp;
   uint private currentTime;
-  uint[4] minAmount;
-  uint[4] stakePeriod;
+  uint[] minAmount;
+  uint[] stakePeriod;
   uint[] percent;
-  uint[] public addr_array;
 
   struct StakerInfo{
     uint amount;
@@ -108,10 +107,15 @@ contract ExoToken is
   mapping(address => mapping(uint => StakerInfo)) public stakerInfo;
 
   mapping(uint => mapping(uint => address[])) public StakeArray;
+  mapping(address => uint) public tierStatus;
+
+  event Stake(address indexed _from, uint _amount);
+  event Claim(address indexed _to, uint _amount);
+  event ExoTransfer(address indexed _from, address indexed _to, uint _amount);
 
   function array_minAmount() 
     private 
-    returns(uint[4] memory) 
+    returns(uint[] memory) 
   {
     minAmount = [0, 2000, 4000, 8000];
     return minAmount;
@@ -119,9 +123,9 @@ contract ExoToken is
 
   function array_period() 
     private 
-    returns(uint[4] memory) 
+    returns(uint[] memory) 
   {
-    stakePeriod = [0, 30 days, 60 days, 90 days];
+    stakePeriod = [0, 30 seconds, 60 seconds, 90 seconds];
     return stakePeriod;
   }
 
@@ -133,6 +137,17 @@ contract ExoToken is
     return percent;
   }
 
+  function transfer(address to, uint256 amount) public virtual override returns (bool) {
+    address owner = _msgSender();
+    uint ExoBalance = balanceOf(msg.sender);
+    
+    uint[] memory min = array_minAmount();
+    if(ExoBalance < min[tierStatus[msg.sender]]) tierStatus[msg.sender] -= 1;
+    _transfer(owner, to, amount);
+    emit ExoTransfer(owner, to, amount);
+    return true;
+  }
+
   function staking(uint _amount, uint _duration) 
     external 
   {
@@ -140,8 +155,8 @@ contract ExoToken is
     require(_duration < 4, "Duration not match");
 
     StakerInfo storage staker = stakerInfo[msg.sender][_duration];
-    uint[4] memory min = array_minAmount();
-    uint[4] memory period = array_period();
+    uint[] memory min = array_minAmount();
+    uint[] memory period = array_period();
     require(_amount > min[staker.tier], "The staking amount must be greater than the minimum amount for that tier.");
     if(_duration == 0) staker.isSoftStaker = true;
     else staker.isHardStaker = true;
@@ -154,8 +169,11 @@ contract ExoToken is
     staker.interest = staker.tier * 4 + _duration;
     staker.candidate = minAmount[staker.tier] < _amount ? true : false;
     StakeArray[staker.tier][_duration].push(msg.sender);
+    tierStatus[msg.sender] = staker.tier;
 
-    transfer(msg.sender, _amount * _decimals);
+    transfer(address(this), _amount * _decimals);
+
+    emit Stake(msg.sender, _amount);
 
   }
 
@@ -194,7 +212,6 @@ contract ExoToken is
 
   function multiClaim(uint _duration) 
     public 
-    returns(uint[] memory)
   {
     require(_duration < 4, "Duration not match");
     blockTimeStamp = block.timestamp;
@@ -203,11 +220,12 @@ contract ExoToken is
         for (uint j = 0; j < StakeArray[i][_duration].length; j ++) {
           address stakerAddr = StakeArray[i][_duration][j];
           StakerInfo memory staker = stakerInfo[stakerAddr][_duration];
-          addr_array.push(staker.expireDate);
           if(staker.expireDate > blockTimeStamp){
+            StakeArray[i][_duration].push(stakerAddr); 
             if(staker.interest != 0) {
               uint rewardAmount = staker.amount;
-              transfer(stakerAddr, rewardAmount);
+              super.transfer(stakerAddr, rewardAmount);
+              emit Claim(stakerAddr, rewardAmount);
             }
           } else {
               unStaking(stakerAddr, _duration);
@@ -215,24 +233,5 @@ contract ExoToken is
         }
       }
     }
-    return addr_array;
-  }
-
-  function formatInfo(uint _duration)
-    public
-    returns(bool)
-  {
-    StakerInfo storage staker = stakerInfo[msg.sender][_duration];
-    staker.amount = 0;
-    staker.date = 0;
-    staker.duration = 0;
-    staker.claimDate = 0;
-    staker.expireDate = 0;
-    staker.interest = 0;
-    staker.isHardStaker = false;
-    staker.isSoftStaker = false;
-    staker.tier = 0;
-    staker.candidate = false;
-    return true;
   }
 }
