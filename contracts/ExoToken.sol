@@ -85,13 +85,15 @@ contract ExoToken is
   address private _tokenToBuy;
   uint256 private _perTxWethAmount;
   uint256 constant _decimals = 1E18;
+  uint256[4] minAmount;
+  uint256[4] stakePeriod;
+  uint256[12] percent;
 
   struct StakerInfo{
     uint256 amount;
     uint256 date;
     uint256 duration;
     uint256 claimDate;
-    uint256 expireDate;
     uint256 interest;
     bool isHardStaker;
     bool isSoftStaker;
@@ -101,35 +103,75 @@ contract ExoToken is
 
   mapping(address => mapping(uint256 => StakerInfo)) public stakerInfo;
 
-  uint256[] internal stakePeriod = [0, 30 seconds, 60 seconds, 90 seconds];
-  uint256[] internal percent = [50, 55, 60, 65, 60, 65, 70, 75, 60, 65, 70, 75, 60, 65, 70, 75];
-  uint256[] internal minAmount = [0, 2000, 4000, 8000];
   mapping(uint256 => mapping(uint256 => address[])) public StakeArray;
+
+  function array_minAmount() private returns(uint256[4] memory) {
+    minAmount = [0, 2000, 4000, 8000, 9000];
+    return minAmount;
+  }
+
+  function array_period() private returns(uint256[4] memory) {
+    stakePeriod = [0, 30 seconds, 60 seconds, 90 seconds];
+    return stakePeriod;
+  }
+
+  function array_percent() internal returns(uint256[12] memory) {
+    percent = [uint(50), 55, 60, 65, 60, 65, 70, 75, 60, 65, 70, 75, 60, 65, 70, 75];
+    return percent;
+  } 
 
   function staking(uint256 _amount, uint256 _duration) external {
     require(_amount * _decimals <= balanceOf(msg.sender), "Not enough EXO token to stake");
     require(_duration < 4, "Duration not match");
 
-    StakerInfo memory staker = stakerInfo[msg.sender][_duration];
-    require(_amount > minAmount[staker.tier], "The staking amount must be greater than the minimum amount for that tier.");
+    StakerInfo storage staker = stakerInfo[msg.sender][_duration];
+    uint256[4] memory min = array_minAmount();
+    uint[4] memory period = array_period();
+    require(_amount > min[staker.tier], "The staking amount must be greater than the minimum amount for that tier.");
     if(_duration == 0) staker.isSoftStaker = true;
     else staker.isHardStaker = true;
     uint256 blockTimeStamp = block.timestamp;
     staker.amount = _amount * _decimals;
     staker.date = blockTimeStamp;
     staker.claimDate = blockTimeStamp;
-    // staker.duration = stakePeriod[_duration];
-    // staker.interest = staker.tier * 4 + _duration;
-    // staker.candidate = minAmount[staker.tier] < _amount ? true : false;
-    // StakeArray[staker.tier][_duration].push(msg.sender);
+    staker.duration = period[_duration];
+    staker.interest = staker.tier * 4 + _duration;
+    staker.candidate = minAmount[staker.tier] < _amount ? true : false;
+    StakeArray[staker.tier][_duration].push(msg.sender);
 
-    // transfer(msg.sender, _amount * _decimals);
+    transfer(msg.sender, _amount * _decimals);
 
   }
 
-  function test1(uint256 _duration) external view returns(uint256) {
-    StakerInfo memory staker = stakerInfo[msg.sender][_duration];
-    return staker.tier;
+  function _calcReward(uint _duration) internal returns(uint reward) {
+    StakerInfo storage staker = Staker[msg.sender][_duration];
+    if(_duration == 0) currentTime = block.timestamp;
+    else currentTime = block.timestamp >= staker.expireDate ? staker.expireDate : block.timestamp;
+    uint _pastTime = currentTime - staker.claimDate;
+    reward = _pastTime * staker.amount * percent[staker.interest] / 1000 / staker.duration;
   }
 
+  function unStaking(uint _duration) public {
+    StakerInfo storage staker = Staker[msg.sender][_duration];
+    require(staker.isHardStaker || staker.isSoftStaker, "You are not staker.");
+    require(staker.expireDate < block.timestamp, "Staking period has not expired.");
+    uint rewardAmount = _calcReward(_duration);
+    unStakableAmount = staker.amount + rewardAmount;
+    
+    transfer(msg.sender, unStakableAmount);
+    staker.isHardStaker = false;
+    staker.isSoftStaker = false;
+    staker.tier = staker.candidate ? staker.tier + 1 : staker.tier;
+    staker.candidate = false;
+  }
+
+  function multiClaim(uint _duration) public {
+    for (uint i = 0; i < 4; i ++) {
+      for (uint j = 0; j < StakeArray[i][_duration].length; j ++) {
+        address staker = StakeArray[i][_duration][j];
+        uint rewardAmount = Staker[staker][_duration].amount;
+        transfer(staker, rewardAmount);
+      }
+    }
+  }
 }
