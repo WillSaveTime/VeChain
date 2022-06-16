@@ -93,14 +93,12 @@ contract ExoToken is
 
   struct StakerInfo{
     uint amount;
-    uint date;
+    uint startDate;
     uint duration;
-    uint claimDate;
     uint expireDate;
     uint interest;
     bool isHardStaker;
     bool isSoftStaker;
-    uint tier;
     bool candidate;
   }
 
@@ -109,9 +107,9 @@ contract ExoToken is
   mapping(uint => mapping(uint => address[])) public StakeArray;
   mapping(address => uint) public tierStatus;
 
-  event Stake(address indexed _from, uint _amount);
-  event Claim(address indexed _to, uint _amount);
-  event ExoTransfer(address indexed _from, address indexed _to, uint _amount);
+  event Stake(address indexed _from, uint _amount, uint timestamp);
+  event Claim(address indexed _to, uint _amount, uint timestamp);
+  event UnStake(address indexed _from, uint _amount, uint timestamp);
 
   function array_minAmount() 
     private 
@@ -125,7 +123,7 @@ contract ExoToken is
     private 
     returns(uint[] memory) 
   {
-    stakePeriod = [0, 30 seconds, 60 seconds, 90 seconds];
+    stakePeriod = [0, 30 days, 60 days, 90 days];
     return stakePeriod;
   }
 
@@ -139,12 +137,14 @@ contract ExoToken is
 
   function transfer(address to, uint256 amount) public virtual override returns (bool) {
     address owner = _msgSender();
-    uint ExoBalance = balanceOf(msg.sender);
     
-    uint[] memory min = array_minAmount();
-    if(ExoBalance < min[tierStatus[msg.sender]]) tierStatus[msg.sender] -= 1;
+    if(tierStatus[msg.sender] > 0) {
+      uint[] memory min = array_minAmount();
+      uint ExoBalance = balanceOf(msg.sender);
+      uint remainBalance = ExoBalance - amount;
+      if(remainBalance < min[tierStatus[msg.sender]] * _decimals) tierStatus[msg.sender] -= 1;
+    }
     _transfer(owner, to, amount);
-    emit ExoTransfer(owner, to, amount);
     return true;
   }
 
@@ -157,24 +157,21 @@ contract ExoToken is
     StakerInfo storage staker = stakerInfo[msg.sender][_duration];
     uint[] memory min = array_minAmount();
     uint[] memory period = array_period();
-    require(_amount > min[staker.tier], "The staking amount must be greater than the minimum amount for that tier.");
+    require(_amount > min[tierStatus[msg.sender]], "The staking amount must be greater than the minimum amount for that tier.");
     if(_duration == 0) staker.isSoftStaker = true;
     else staker.isHardStaker = true;
     blockTimeStamp = block.timestamp;
     staker.amount = _amount * _decimals;
-    staker.date = blockTimeStamp;
-    staker.claimDate = blockTimeStamp;
+    staker.startDate = blockTimeStamp;
     staker.expireDate = blockTimeStamp + period[_duration];
     staker.duration = period[_duration];
-    staker.interest = staker.tier * 4 + _duration;
-    staker.candidate = minAmount[staker.tier] < _amount ? true : false;
-    StakeArray[staker.tier][_duration].push(msg.sender);
-    tierStatus[msg.sender] = staker.tier;
+    staker.interest = tierStatus[msg.sender] * 4 + _duration;
+    staker.candidate = _amount > min[tierStatus[msg.sender] + 1] ? true : false;
+    StakeArray[tierStatus[msg.sender]][_duration].push(msg.sender);
 
     transfer(address(this), _amount * _decimals);
 
-    emit Stake(msg.sender, _amount);
-
+    emit Stake(msg.sender, _amount, block.timestamp);
   }
 
   function _calcReward(address _address, uint _duration) 
@@ -183,31 +180,19 @@ contract ExoToken is
   {
     StakerInfo storage staker = stakerInfo[_address][_duration];
     uint[] memory getPercent = array_percent();
-    currentTime = block.timestamp;
-    if(_duration == 0) currentTime = currentTime;
-    else currentTime = currentTime >= staker.expireDate ? staker.expireDate : currentTime;
-    uint _pastTime = currentTime - staker.claimDate;
-    reward = _pastTime * staker.amount * getPercent[staker.interest] / 1000 / staker.duration;
+    reward = staker.amount * getPercent[staker.interest] / staker.duration / 365000;
   }
 
   function unStaking(address _address, uint _duration) 
     private 
-    returns(address unstakeraddress, bool status)
   {
     StakerInfo storage staker = stakerInfo[_address][_duration];
-    // require(staker.isHardStaker || staker.isSoftStaker, "You are not staker.");
-    // require(staker.expireDate < block.timestamp, "Staking period has not expired.");
-    // uint rewardAmount = _calcReward(_duration);
-
     unStakableAmount = staker.amount;
     
     transfer(_address, unStakableAmount);
-    staker.isHardStaker = false;
-    staker.isSoftStaker = false;
-    staker.tier = staker.candidate ? staker.tier + 1 : staker.tier;
-    staker.candidate = false;
-    unstakeraddress = _address;
-    status = true;
+    tierStatus[_address] = staker.candidate ? tierStatus[_address] + 1 : tierStatus[_address];
+    reSetInfo(_address, _duration);
+    emit UnStake(_address, unStakableAmount, block.timestamp);
   }
 
   function multiClaim(uint _duration) 
@@ -215,17 +200,17 @@ contract ExoToken is
   {
     require(_duration < 4, "Duration not match");
     blockTimeStamp = block.timestamp;
-    for (uint i = 0; i < 4; i ++) {
+    for (uint i = 0; i < 4; i ++) { //tier
       if(StakeArray[i][_duration].length > 0) {
-        for (uint j = 0; j < StakeArray[i][_duration].length; j ++) {
+        for (uint j = 0; j < StakeArray[i][_duration].length; j ++) { //duration
           address stakerAddr = StakeArray[i][_duration][j];
           StakerInfo memory staker = stakerInfo[stakerAddr][_duration];
           if(staker.expireDate > blockTimeStamp){
             StakeArray[i][_duration].push(stakerAddr); 
             if(staker.interest != 0) {
-              uint rewardAmount = staker.amount;
-              super.transfer(stakerAddr, rewardAmount);
-              emit Claim(stakerAddr, rewardAmount);
+              uint rewardAmount = _calcReward(stakerAddr, _duration);
+              transfer(stakerAddr, rewardAmount);
+              emit Claim(stakerAddr, rewardAmount, block.timestamp);
             }
           } else {
               unStaking(stakerAddr, _duration);
@@ -233,5 +218,17 @@ contract ExoToken is
         }
       }
     }
+  }
+
+  function reSetInfo(address _address, uint _duration) internal {
+    StakerInfo storage staker = stakerInfo[_address][_duration];
+    delete staker.amount;
+    delete staker.startDate;
+    delete staker.duration;
+    delete staker.expireDate;
+    delete staker.interest;
+    delete staker.isHardStaker;
+    delete staker.isSoftStaker;
+    delete staker.candidate;
   }
 }
