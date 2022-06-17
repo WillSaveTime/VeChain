@@ -103,79 +103,81 @@ contract ExoToken is
     bool candidate;
   }
 
-  struct Lists{
+  struct List{
     string title;
     uint voteCnt; 
   }
 
-  struct Votes{
+  struct Vote{
     uint idx;
     string subject;
-    string[] list;
     uint startDate;
     uint endDate;
+    mapping(uint => List) list;
   }
 
   mapping(address => mapping(uint => StakerInfo)) public stakerInfo;
   mapping(uint => mapping(uint => address[])) public StakeArray;
   mapping(address => uint) public tierStatus;
 
-  Votes[] public votes;
-  Lists[] public lists;
-  mapping(uint => Votes[]) public voteInfo;
-  
-  function createEvent(string memory _subject, string[] memory _list, uint _startDate, uint _endDate) public onlyOwner {
+  mapping(uint => Vote) public votes;
+
+  function createVote(string calldata _subject, string[] calldata _list, uint _startDate, uint _endDate) external onlyOwner {
     require(bytes(_subject).length > 0, "Subject is empty");
     require(_list.length > 0, "Titles are empty");
-    votes.push(
-        Votes(
-            votesCounter++,
-            _subject,
-            _list,
-            _startDate,
-            _endDate
-        )
-    );
+    
+    uint voteID = votesCounter ++;
+    Vote storage tmp_vote = votes[voteID];
+
+    tmp_vote.idx = votesCounter;
+    tmp_vote.subject = _subject;
+    tmp_vote.startDate = _startDate;
+    tmp_vote.endDate = _endDate;
+    addList(votesCounter, _list);
+
   }
 
-  function getVote(uint _idx) external view returns(Votes[] memory) {
-    return voteInfo[_idx];
+  function addList(uint _voteID, string[] calldata _list) internal {
+    Vote storage tmp_vote = votes[_voteID];
+    for(uint i = 0; i < _list.length; i ++) {
+        tmp_vote.list[i] = List(
+            _list[i],
+            0
+        );
+    }
   }
 
-  
-
-  function vote(uint _idx) public returns(string memory) {
-    currentTime = block.timestamp;
-    return votes[_idx].subject;
+  function get_vote(uint _idx) external returns(List[] memory) {
+    
   }
 
   event Stake(address indexed _from, uint _amount, uint timestamp);
   event Claim(address indexed _to, uint _amount, uint timestamp);
   event UnStake(address indexed _from, uint _amount, uint timestamp);
 
-  function array_minAmount() 
-    private 
-    returns(uint[] memory) 
-  {
-    minAmount = [0, 2000, 4000, 8000];
-    return minAmount;
-  }
+//   function array_minAmount() 
+//     private 
+//     returns(uint[] memory) 
+//   {
+//     minAmount = [0, 2000, 4000, 8000];
+//     return minAmount;
+//   }
 
-  function array_period() 
-    private 
-    returns(uint[] memory) 
-  {
-    stakePeriod = [0, 30 days, 60 days, 90 days];
-    return stakePeriod;
-  }
+//   function array_period() 
+//     private 
+//     returns(uint[] memory) 
+//   {
+//     stakePeriod = [0, 30 days, 60 days, 90 days];
+//     return stakePeriod;
+//   }
 
-  function array_percent() 
-    internal 
-    returns(uint[] memory) 
-  {
-    percent = [50, 55, 60, 65, 60, 65, 70, 75, 60, 65, 70, 75, 60, 65, 70, 75];
-    return percent;
-  }
+//   function array_percent() 
+//     internal 
+//     returns(uint[] memory) 
+//   {
+//     percent = [50, 55, 60, 65, 60, 65, 70, 75, 60, 65, 70, 75, 60, 65, 70, 75];
+//     return percent;
+//   }
 
   // function transfer(address to, uint256 amount) 
   //   public 
