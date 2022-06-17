@@ -2,6 +2,7 @@
 const TransparentUpgradeableProxy = artifacts.require('TransparentUpgradeableProxy');
 const ProxyAdmin = artifacts.require('ProxyAdmin');
 const ExoToken = artifacts.require('ExoToken');
+const PlanetNFTs = artifacts.require('PlanetNFTs');
 
 module.exports = async function (deployer) {
   await deployer.deploy(ExoToken);
