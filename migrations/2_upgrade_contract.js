@@ -5,7 +5,7 @@ const ExoToken = artifacts.require('ExoToken');
 const PlanetNFTs = artifacts.require('PlanetNFTs');
 
 module.exports = async function (deployer) {
-  await deployer.deploy(ExoToken);
+  await deployer.deploy(ExoToken); 
   const exoToken = await ExoToken.deployed();
   // await deployer.deploy(ProxyAdmin);
   // const proxyAdmin = await ProxyAdmin.deployed();
