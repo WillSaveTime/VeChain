@@ -109,7 +109,6 @@ contract ExoToken is
   }
 
   struct Vote{
-    uint idx;
     string subject;
     uint startDate;
     uint endDate;
@@ -129,8 +128,7 @@ contract ExoToken is
   event addVote(string subject, uint start, uint end, uint timestamp);
 
   function createVote(string calldata _subject, string[] calldata _list, uint _startDate, uint _endDate) external onlyOwner {
-    Vote storage tmp_vote = vote_array.push();
-    tmp_vote.idx = votesCounter;
+    Vote storage tmp_vote = vote_array[votesCounter];
     tmp_vote.subject = _subject;
     tmp_vote.startDate = _startDate;
     tmp_vote.endDate = _endDate;
@@ -291,7 +289,10 @@ contract ExoToken is
     require(_voteID < votesCounter, "Not valid Vote ID");
     Vote storage tmp_vote = vote_array[_voteID];
     require(_listID < tmp_vote.lists.length, "Not valid List ID");
-    tmp_vote.lists[_listID].voteCnt +=  1;
+    uint tier = tierStatus[msg.sender];
+    uint balance = balanceOf(msg.sender);
+    uint voteValue = tier * balance;
+    tmp_vote.lists[_listID].voteCnt += voteValue;
     return true;
   }
 }
