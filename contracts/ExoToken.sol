@@ -87,7 +87,7 @@ contract ExoToken is
   uint constant _decimals = 1E18;
   uint private blockTimeStamp;
   uint private currentTime;
-  uint votesCounter = 0;
+  uint public votesCounter = 0;
   uint[] minAmount;
   uint[] stakePeriod;
   uint[] percent;
@@ -113,47 +113,45 @@ contract ExoToken is
     string subject;
     uint startDate;
     uint endDate;
-    mapping(uint => List) list;
+    List[] lists;
+    uint listCnt;
   }
 
   mapping(address => mapping(uint => StakerInfo)) public stakerInfo;
   mapping(uint => mapping(uint => address[])) public StakeArray;
   mapping(address => uint) public tierStatus;
 
-  mapping(uint => Vote) public votes;
-
-  function createVote(string calldata _subject, string[] calldata _list, uint _startDate, uint _endDate) external onlyOwner {
-    require(bytes(_subject).length > 0, "Subject is empty");
-    require(_list.length > 0, "Titles are empty");
-    
-    uint voteID = votesCounter ++;
-    Vote storage tmp_vote = votes[voteID];
-
-    tmp_vote.idx = votesCounter;
-    tmp_vote.subject = _subject;
-    tmp_vote.startDate = _startDate;
-    tmp_vote.endDate = _endDate;
-    addList(votesCounter, _list);
-
-  }
-
-  function addList(uint _voteID, string[] calldata _list) internal {
-    Vote storage tmp_vote = votes[_voteID];
-    for(uint i = 0; i < _list.length; i ++) {
-        tmp_vote.list[i] = List(
-            _list[i],
-            0
-        );
-    }
-  }
-
-  function get_vote(uint _idx) external returns(List[] memory) {
-    
-  }
+  Vote[] public vote_array;
 
   event Stake(address indexed _from, uint _amount, uint timestamp);
   event Claim(address indexed _to, uint _amount, uint timestamp);
   event UnStake(address indexed _from, uint _amount, uint timestamp);
+  event addVote(string subject, uint start, uint end, uint timestamp);
+
+  function createVote(string calldata _subject, string[] calldata _list, uint _startDate, uint _endDate) external onlyOwner {
+    Vote storage tmp_vote = vote_array.push();
+    tmp_vote.idx = votesCounter;
+    tmp_vote.subject = _subject;
+    tmp_vote.startDate = _startDate;
+    tmp_vote.endDate = _endDate;
+    tmp_vote.listCnt = _list.length;
+    vote_array.push(tmp_vote);
+    for(uint i = 0; i < _list.length; i ++) {
+      tmp_vote.lists.push(List(_list[i], 0));
+    }
+    votesCounter ++;
+
+    emit addVote(_subject, _startDate, _endDate, block.timestamp);
+  }
+
+  function get_votes() external view returns(Vote[] memory) {
+    Vote[] memory allVotes = new Vote[](votesCounter + 1);
+    for(uint i = 0; i <= votesCounter; i ++) {
+      Vote storage tmp_vote = vote_array[i];
+      allVotes[i] = tmp_vote;
+    }
+    return allVotes;
+  }
 
 //   function array_minAmount() 
 //     private 
@@ -282,5 +280,18 @@ contract ExoToken is
   //   delete staker.candidate;
   // }
 
-  
+//   function get_list(uint _voteID, uint _listID) external view returns(string memory, uint) {
+//     Vote storage tmp_vote = votes[_voteID];
+//     string memory tmp_list = tmp_vote.list[_listID].title;
+//     uint tmp_cnt = tmp_vote.list[_listID].voteCnt;
+//     return (tmp_list, tmp_cnt);
+//   }
+
+  function addCnt(uint _voteID, uint _listID) external returns(bool) {
+    require(_voteID < votesCounter, "Not valid Vote ID");
+    Vote storage tmp_vote = vote_array[_voteID];
+    require(_listID < tmp_vote.lists.length, "Not valid List ID");
+    tmp_vote.lists[_listID].voteCnt +=  1;
+    return true;
+  }
 }
