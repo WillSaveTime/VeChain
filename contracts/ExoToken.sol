@@ -88,6 +88,7 @@ contract ExoToken is
   uint private blockTimeStamp;
   uint private currentTime;
   uint public votesCounter = 0;
+  uint public curVoteCnt = 0;
   uint[] minAmount;
   uint[] stakePeriod;
   uint[] percent;
@@ -109,6 +110,7 @@ contract ExoToken is
   }
 
   struct Vote{
+    uint idx;
     string subject;
     uint startDate;
     uint endDate;
@@ -129,26 +131,55 @@ contract ExoToken is
 
   function createVote(string calldata _subject, string[] calldata _list, uint _startDate, uint _endDate) external onlyOwner {
     Vote storage tmp_vote = vote_array[votesCounter];
+    tmp_vote.idx = votesCounter;
     tmp_vote.subject = _subject;
     tmp_vote.startDate = _startDate;
     tmp_vote.endDate = _endDate;
     tmp_vote.listCnt = _list.length;
-    vote_array.push(tmp_vote);
     for(uint i = 0; i < _list.length; i ++) {
       tmp_vote.lists.push(List(_list[i], 0));
     }
+    vote_array.push(tmp_vote);
     votesCounter ++;
 
     emit addVote(_subject, _startDate, _endDate, block.timestamp);
   }
 
   function get_votes() external view returns(Vote[] memory) {
-    Vote[] memory allVotes = new Vote[](votesCounter + 1);
-    for(uint i = 0; i <= votesCounter; i ++) {
+    require(votesCounter > 0, "Vote Empty");
+    Vote[] memory allVotes = new Vote[](votesCounter);
+    for(uint i = 0; i < votesCounter; i ++) {
       Vote storage tmp_vote = vote_array[i];
       allVotes[i] = tmp_vote;
     }
     return allVotes;
+  }
+
+  
+  function get_curVotes() external view returns(Vote[] memory) {
+    require(votesCounter > 0, "Vote Empty");
+    Vote[] memory currentVotes = new Vote[](votesCounter);
+    uint j = 0;
+    for(uint i = 0; i < votesCounter; i ++) {
+      Vote storage tmp_vote = vote_array[i];
+      if (tmp_vote.startDate < block.timestamp && tmp_vote.endDate > block.timestamp) {
+        currentVotes[j++] = tmp_vote;
+      }
+    }
+    return currentVotes;
+  }
+
+  function get_futVotes() external view returns(Vote[] memory) {
+    require(votesCounter > 0, "Vote Empty");
+    Vote[] memory futVotes = new Vote[](votesCounter);
+    uint j = 0;
+    for(uint i = 0; i < votesCounter; i ++) {
+      Vote storage tmp_vote = vote_array[i];
+      if (tmp_vote.startDate > block.timestamp) {
+        futVotes[j++] = tmp_vote;
+      }
+    }
+    return futVotes;
   }
 
 //   function array_minAmount() 
@@ -291,8 +322,9 @@ contract ExoToken is
     require(_listID < tmp_vote.lists.length, "Not valid List ID");
     uint tier = tierStatus[msg.sender];
     uint balance = balanceOf(msg.sender);
-    uint voteValue = tier * balance;
+    uint voteValue = (tier * (tier + 1) / 2) * balance;
     tmp_vote.lists[_listID].voteCnt += voteValue;
     return true;
   }
+
 }
