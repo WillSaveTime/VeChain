@@ -51,6 +51,11 @@ contract ExoToken is
 		_mint(to, amount);
 	}
 
+  function updateAdmin(address newAdmin) external {
+    require(msg.sender == admin, 'only admin');
+    admin = newAdmin;
+  }
+
 	function _beforeTokenTransfer(
 		address from,
 		address to,
