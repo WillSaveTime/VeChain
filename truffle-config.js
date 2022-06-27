@@ -18,7 +18,7 @@
  *
  */
 
-// const HDWalletProvider = require('@truffle/hdwallet-provider');
+const HDWalletProvider = require('@truffle/hdwallet-provider');
 //
 // const fs = require('fs');
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
@@ -70,7 +70,7 @@ module.exports = {
         // network_id: 2111,   // This network is yours, in the cloud.
         // production: true    // Treats this network as if it was a public net. (default: false)
         // }
-        ethTestnet: {
+        rinkeby: {
             provider: () => new HDWalletProvider(
               process.env.mnemonic, 
               'https://rinkeby.infura.io/v3/0e42c582d71b4ba5a8750f688fce07da',

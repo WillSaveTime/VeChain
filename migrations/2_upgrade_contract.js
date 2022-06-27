@@ -17,7 +17,7 @@ module.exports = async function (deployer) {
   // const proxyExo = await ExoToken.at(trans.address);
   // await proxyExo.initialize();
 
-  if(network === 'ethTestnet') {
+  if(network === 'rinkeby') {
     await deployer.deploy(TokenEth);
     const tokenEth = await TokenEth.deployed();
     await deployer.deploy(ProxyAdmin);
