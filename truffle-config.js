@@ -73,7 +73,7 @@ module.exports = {
         rinkeby: {
             provider: () => new HDWalletProvider(
               process.env.mnemonic, 
-              'https://rinkeby.infura.io/v3/0e42c582d71b4ba5a8750f688fce07da',
+              'wss://rinkeby.infura.io/ws/v3/0e42c582d71b4ba5a8750f688fce07da',
               0,
               1
             ),

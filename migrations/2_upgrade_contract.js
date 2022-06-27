@@ -7,7 +7,7 @@ const TokenVe = artifacts.require('TokenVe');
 const BridgeEth = artifacts.require('BridgeEth');
 const BridgeVe = artifacts.require('BridgeVe');
 
-module.exports = async function (deployer) {
+module.exports = async function (deployer, network, addresses) {
   // await deployer.deploy(ExoToken); 
   // const exoToken = await ExoToken.deployed();
   // await deployer.deploy(ProxyAdmin);
@@ -28,7 +28,7 @@ module.exports = async function (deployer) {
     await proxyExo.initialize();
 
     await tokenEth.mint(addresses[0], 1000);
-    await deployer.deploy(BridgeEth, tokenEth.address);
+    await deployer.deploy(BridgeEth, trans.address);
     const bridgeEth = await BridgeEth.deployed();
     await tokenEth.updateAdmin(bridgeEth.address);
   }

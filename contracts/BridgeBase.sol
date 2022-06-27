@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import './Itoken.sol';
+import './IToken.sol';
 
 contract BridgeBase {
   address public admin;
