@@ -257,9 +257,9 @@ contract ExoToken is
   }
 
   function get_list(uint _voteID, uint _listID) external view returns(string memory, uint) {
-    Vote storage tmp_vote = votes[_voteID];
-    string memory tmp_list = tmp_vote.list[_listID].title;
-    uint tmp_cnt = tmp_vote.list[_listID].voteCnt;
+    Vote storage tmp_vote = vote_array[_voteID];
+    string memory tmp_list = tmp_vote.lists[_listID].title;
+    uint tmp_cnt = tmp_vote.lists[_listID].voteCnt;
     return (tmp_list, tmp_cnt);
   }
 

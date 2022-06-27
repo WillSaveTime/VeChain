@@ -22,7 +22,7 @@ module.exports = async function (deployer) {
     const tokenEth = await TokenEth.deployed();
     await deployer.deploy(ProxyAdmin);
     const proxyAdmin = await ProxyAdmin.deployed();
-    await deployer.deploy(TransparentUpgradeableProxy, exoToken.address, proxyAdmin.address, []);
+    await deployer.deploy(TransparentUpgradeableProxy, tokenEth.address, proxyAdmin.address, []);
     const trans = await TransparentUpgradeableProxy.deployed();
     const proxyExo = await TokenEth.at(trans.address);
     await proxyExo.initialize();
@@ -38,14 +38,14 @@ module.exports = async function (deployer) {
     const tokenVe = await TokenVe.deployed();
     await deployer.deploy(ProxyAdmin);
     const proxyAdmin = await ProxyAdmin.deployed();
-    await deployer.deploy(TransparentUpgradeableProxy, exoToken.address, proxyAdmin.address, []);
+    await deployer.deploy(TransparentUpgradeableProxy, tokenVe.address, proxyAdmin.address, []);
     const trans = await TransparentUpgradeableProxy.deployed();
     const proxyExo = await TokenVe.at(trans.address);
     await proxyExo.initialize();
 
     await tokenVe.mint(addresses[0], 1000);
-    await deployer.deploy(BridgeEth, tokenVe.address);
-    const bridgeEth = await BridgeEth.deployed();
-    await tokenVe.updateAdmin(bridgeEth.address);
+    await deployer.deploy(BridgeVe, tokenVe.address);
+    const bridgeVe = await BridgeVe.deployed();
+    await tokenVe.updateAdmin(bridgeVe.address);
   }
 };
