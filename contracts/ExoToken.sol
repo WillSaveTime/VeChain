@@ -23,14 +23,14 @@ contract ExoToken is
 	ERC2981Upgradeable
 {
   /// @custom:oz-upgrades-unsafe-allow constructor
-	constructor() initializer {}
+	// constructor() initializer {}
 
-	function initialize() public initializer {
-		__ERC20_init("ExoToken", "EXO");
-		__ERC2981_init();
-		__Pausable_init();
-		__Ownable_init();
-	}
+	// function initialize() public initializer {
+	// 	__ERC20_init("ExoToken", "EXO");
+	// 	__ERC2981_init();
+	// 	__Pausable_init();
+	// 	__Ownable_init();
+	// }
 
 	function pause() public onlyOwner {
 		_pause();
