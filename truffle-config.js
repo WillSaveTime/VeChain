@@ -70,6 +70,16 @@ module.exports = {
         // network_id: 2111,   // This network is yours, in the cloud.
         // production: true    // Treats this network as if it was a public net. (default: false)
         // }
+        ethTestnet: {
+            provider: () => new HDWalletProvider(
+              process.env.mnemonic, 
+              'https://rinkeby.infura.io/v3/0e42c582d71b4ba5a8750f688fce07da',
+              0,
+              1
+            ),
+            network_id: 4, //rinkeby
+            skipDryRun: true
+        },
         // Vechain testnet
         testnet: {
             host: "127.0.0.1", // Localhost (default: none)

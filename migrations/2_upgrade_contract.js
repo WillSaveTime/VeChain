@@ -2,15 +2,50 @@
 const TransparentUpgradeableProxy = artifacts.require('TransparentUpgradeableProxy');
 const ProxyAdmin = artifacts.require('ProxyAdmin');
 const ExoToken = artifacts.require('ExoToken');
-const PlanetNFTs = artifacts.require('PlanetNFTs');
+const TokenEth = artifacts.require('TokenEth');
+const TokenVe = artifacts.require('TokenVe');
+const BridgeEth = artifacts.require('BridgeEth');
+const BridgeVe = artifacts.require('BridgeVe');
 
 module.exports = async function (deployer) {
-  await deployer.deploy(ExoToken); 
-  const exoToken = await ExoToken.deployed();
-//   await deployer.deploy(ProxyAdmin);
-//   const proxyAdmin = await ProxyAdmin.deployed();
-//   await deployer.deploy(TransparentUpgradeableProxy, exoToken.address, proxyAdmin.address, []);
-//   const trans = await TransparentUpgradeableProxy.deployed();
-//   const proxyExo = await ExoToken.at(trans.address);
-//   await proxyExo.initialize();
-// };
+  // await deployer.deploy(ExoToken); 
+  // const exoToken = await ExoToken.deployed();
+  // await deployer.deploy(ProxyAdmin);
+  // const proxyAdmin = await ProxyAdmin.deployed();
+  // await deployer.deploy(TransparentUpgradeableProxy, exoToken.address, proxyAdmin.address, []);
+  // const trans = await TransparentUpgradeableProxy.deployed();
+  // const proxyExo = await ExoToken.at(trans.address);
+  // await proxyExo.initialize();
+
+  if(network === 'ethTestnet') {
+    await deployer.deploy(TokenEth);
+    const tokenEth = await TokenEth.deployed();
+    await deployer.deploy(ProxyAdmin);
+    const proxyAdmin = await ProxyAdmin.deployed();
+    await deployer.deploy(TransparentUpgradeableProxy, exoToken.address, proxyAdmin.address, []);
+    const trans = await TransparentUpgradeableProxy.deployed();
+    const proxyExo = await TokenEth.at(trans.address);
+    await proxyExo.initialize();
+
+    await tokenEth.mint(addresses[0], 1000);
+    await deployer.deploy(BridgeEth, tokenEth.address);
+    const bridgeEth = await BridgeEth.deployed();
+    await tokenEth.updateAdmin(bridgeEth.address);
+  }
+
+  if(network === 'testnet') {
+    await deployer.deploy(TokenVe);
+    const tokenVe = await TokenVe.deployed();
+    await deployer.deploy(ProxyAdmin);
+    const proxyAdmin = await ProxyAdmin.deployed();
+    await deployer.deploy(TransparentUpgradeableProxy, exoToken.address, proxyAdmin.address, []);
+    const trans = await TransparentUpgradeableProxy.deployed();
+    const proxyExo = await TokenVe.at(trans.address);
+    await proxyExo.initialize();
+
+    await tokenVe.mint(addresses[0], 1000);
+    await deployer.deploy(BridgeEth, tokenVe.address);
+    const bridgeEth = await BridgeEth.deployed();
+    await tokenVe.updateAdmin(bridgeEth.address);
+  }
+};
