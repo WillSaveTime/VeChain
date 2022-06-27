@@ -129,6 +129,152 @@ contract ExoToken is
   event UnStake(address indexed _from, uint _amount, uint timestamp);
   event addVote(string subject, uint start, uint end, uint timestamp);
 
+  function array_minAmount() 
+    private 
+    returns(uint[] memory) 
+  {
+    minAmount = [0, 2000, 4000, 8000];
+    return minAmount;
+  }
+
+  function array_period() 
+    private 
+    returns(uint[] memory) 
+  {
+    stakePeriod = [0, 30 days, 60 days, 90 days];
+    return stakePeriod;
+  }
+
+  function array_percent() 
+    internal 
+    returns(uint[] memory) 
+  {
+    percent = [50, 55, 60, 65, 60, 65, 70, 75, 60, 65, 70, 75, 60, 65, 70, 75];
+    return percent;
+  }
+
+  function transfer(address to, uint256 amount) 
+    public 
+    virtual 
+    override 
+    returns (bool) 
+  {
+    address owner = _msgSender();
+    
+    if(tierStatus[msg.sender] > 0) {
+      uint[] memory min = array_minAmount();
+      uint ExoBalance = balanceOf(msg.sender);
+      uint remainBalance = ExoBalance - amount;
+      if(remainBalance < min[tierStatus[msg.sender]] * _decimals) tierStatus[msg.sender] -= 1;
+    }
+
+    _transfer(owner, to, amount);
+    return true;
+  }
+
+  function staking(uint _amount, uint _duration) 
+    external 
+  {
+    require(_amount * _decimals <= balanceOf(msg.sender), "Not enough EXO token to stake");
+    require(_duration < 4, "Duration not match");
+
+    StakerInfo storage staker = stakerInfo[msg.sender][_duration];
+    uint[] memory min = array_minAmount();
+    uint[] memory period = array_period();
+    require(_amount > min[tierStatus[msg.sender]], "The staking amount must be greater than the minimum amount for that tier.");
+    if(_duration == 0) staker.isSoftStaker = true;
+    else staker.isHardStaker = true;
+    blockTimeStamp = block.timestamp;
+    staker.amount = _amount * _decimals;
+    staker.startDate = blockTimeStamp;
+    staker.expireDate = blockTimeStamp + period[_duration];
+    staker.duration = period[_duration];
+    staker.interest = tierStatus[msg.sender] * 4 + _duration;
+    staker.candidate = _amount > min[tierStatus[msg.sender] + 1] ? true : false;
+    StakeArray[tierStatus[msg.sender]][_duration].push(msg.sender);
+
+    emit Stake(msg.sender, _amount, block.timestamp);
+
+    transfer(address(this), _amount * _decimals);
+  }
+
+  function _calcReward(address _address, uint _duration) 
+    internal 
+    returns(uint reward) 
+  {
+    StakerInfo storage staker = stakerInfo[_address][_duration];
+    uint[] memory getPercent = array_percent();
+    reward = staker.amount * getPercent[staker.interest] / staker.duration / 365000;
+  }
+
+  function unStaking(address _address, uint _duration) 
+    private 
+  {
+    StakerInfo storage staker = stakerInfo[_address][_duration];
+    unStakableAmount = staker.amount;
+    
+    transfer(_address, unStakableAmount);
+    tierStatus[_address] = staker.candidate ? tierStatus[_address] + 1 : tierStatus[_address];
+    reSetInfo(_address, _duration);
+    emit UnStake(_address, unStakableAmount, block.timestamp);
+  }
+
+  function multiClaim(uint _duration) 
+    public 
+  {
+    require(_duration < 4, "Duration not match");
+    blockTimeStamp = block.timestamp;
+    for (uint i = 0; i < 4; i ++) { //tier
+      if(StakeArray[i][_duration].length > 0) {
+        for (uint j = 0; j < StakeArray[i][_duration].length; j ++) { //duration
+          address stakerAddr = StakeArray[i][_duration][j];
+          StakerInfo memory staker = stakerInfo[stakerAddr][_duration];
+          if(staker.expireDate > blockTimeStamp){
+            StakeArray[i][_duration].push(stakerAddr); 
+            if(staker.interest != 0) {
+              uint rewardAmount = _calcReward(stakerAddr, _duration);
+              transfer(stakerAddr, rewardAmount);
+              emit Claim(stakerAddr, rewardAmount, block.timestamp);
+            }
+          } else {
+              unStaking(stakerAddr, _duration);
+          }
+        }
+      }
+    }
+  }
+
+  function reSetInfo(address _address, uint _duration) internal {
+    StakerInfo storage staker = stakerInfo[_address][_duration];
+    delete staker.amount;
+    delete staker.startDate;
+    delete staker.duration;
+    delete staker.expireDate;
+    delete staker.interest;
+    delete staker.isHardStaker;
+    delete staker.isSoftStaker;
+    delete staker.candidate;
+  }
+
+  function get_list(uint _voteID, uint _listID) external view returns(string memory, uint) {
+    Vote storage tmp_vote = votes[_voteID];
+    string memory tmp_list = tmp_vote.list[_listID].title;
+    uint tmp_cnt = tmp_vote.list[_listID].voteCnt;
+    return (tmp_list, tmp_cnt);
+  }
+
+  function addCnt(uint _voteID, uint _listID) external returns(bool) {
+    require(_voteID < votesCounter, "Not valid Vote ID");
+    Vote storage tmp_vote = vote_array[_voteID];
+    require(_listID < tmp_vote.lists.length, "Not valid List ID");
+    uint tier = tierStatus[msg.sender];
+    uint balance = balanceOf(msg.sender);
+    uint voteValue = (tier * (tier + 1) / 2) * balance;
+    tmp_vote.lists[_listID].voteCnt += voteValue;
+    return true;
+  }
+
+  
   function createVote(string calldata _subject, string[] calldata _list, uint _startDate, uint _endDate) external onlyOwner {
     Vote storage tmp_vote = vote_array[votesCounter];
     tmp_vote.idx = votesCounter;
@@ -180,151 +326,6 @@ contract ExoToken is
       }
     }
     return futVotes;
-  }
-
-//   function array_minAmount() 
-//     private 
-//     returns(uint[] memory) 
-//   {
-//     minAmount = [0, 2000, 4000, 8000];
-//     return minAmount;
-//   }
-
-//   function array_period() 
-//     private 
-//     returns(uint[] memory) 
-//   {
-//     stakePeriod = [0, 30 days, 60 days, 90 days];
-//     return stakePeriod;
-//   }
-
-//   function array_percent() 
-//     internal 
-//     returns(uint[] memory) 
-//   {
-//     percent = [50, 55, 60, 65, 60, 65, 70, 75, 60, 65, 70, 75, 60, 65, 70, 75];
-//     return percent;
-//   }
-
-  // function transfer(address to, uint256 amount) 
-  //   public 
-  //   virtual 
-  //   override 
-  //   returns (bool) 
-  // {
-  //   address owner = _msgSender();
-    
-  //   if(tierStatus[msg.sender] > 0) {
-  //     uint[] memory min = array_minAmount();
-  //     uint ExoBalance = balanceOf(msg.sender);
-  //     uint remainBalance = ExoBalance - amount;
-  //     if(remainBalance < min[tierStatus[msg.sender]] * _decimals) tierStatus[msg.sender] -= 1;
-  //   }
-
-  //   _transfer(owner, to, amount);
-  //   return true;
-  // }
-
-  // function staking(uint _amount, uint _duration) 
-  //   external 
-  // {
-  //   require(_amount * _decimals <= balanceOf(msg.sender), "Not enough EXO token to stake");
-  //   require(_duration < 4, "Duration not match");
-
-  //   StakerInfo storage staker = stakerInfo[msg.sender][_duration];
-  //   uint[] memory min = array_minAmount();
-  //   uint[] memory period = array_period();
-  //   require(_amount > min[tierStatus[msg.sender]], "The staking amount must be greater than the minimum amount for that tier.");
-  //   if(_duration == 0) staker.isSoftStaker = true;
-  //   else staker.isHardStaker = true;
-  //   blockTimeStamp = block.timestamp;
-  //   staker.amount = _amount * _decimals;
-  //   staker.startDate = blockTimeStamp;
-  //   staker.expireDate = blockTimeStamp + period[_duration];
-  //   staker.duration = period[_duration];
-  //   staker.interest = tierStatus[msg.sender] * 4 + _duration;
-  //   staker.candidate = _amount > min[tierStatus[msg.sender] + 1] ? true : false;
-  //   StakeArray[tierStatus[msg.sender]][_duration].push(msg.sender);
-
-  //   emit Stake(msg.sender, _amount, block.timestamp);
-
-  //   transfer(address(this), _amount * _decimals);
-  // }
-
-  // function _calcReward(address _address, uint _duration) 
-  //   internal 
-  //   returns(uint reward) 
-  // {
-  //   StakerInfo storage staker = stakerInfo[_address][_duration];
-  //   uint[] memory getPercent = array_percent();
-  //   reward = staker.amount * getPercent[staker.interest] / staker.duration / 365000;
-  // }
-
-  // function unStaking(address _address, uint _duration) 
-  //   private 
-  // {
-  //   StakerInfo storage staker = stakerInfo[_address][_duration];
-  //   unStakableAmount = staker.amount;
-    
-  //   transfer(_address, unStakableAmount);
-  //   tierStatus[_address] = staker.candidate ? tierStatus[_address] + 1 : tierStatus[_address];
-  //   reSetInfo(_address, _duration);
-  //   emit UnStake(_address, unStakableAmount, block.timestamp);
-  // }
-
-  // function multiClaim(uint _duration) 
-  //   public 
-  // {
-  //   require(_duration < 4, "Duration not match");
-  //   blockTimeStamp = block.timestamp;
-  //   for (uint i = 0; i < 4; i ++) { //tier
-  //     if(StakeArray[i][_duration].length > 0) {
-  //       for (uint j = 0; j < StakeArray[i][_duration].length; j ++) { //duration
-  //         address stakerAddr = StakeArray[i][_duration][j];
-  //         StakerInfo memory staker = stakerInfo[stakerAddr][_duration];
-  //         if(staker.expireDate > blockTimeStamp){
-  //           StakeArray[i][_duration].push(stakerAddr); 
-  //           if(staker.interest != 0) {
-  //             uint rewardAmount = _calcReward(stakerAddr, _duration);
-  //             transfer(stakerAddr, rewardAmount);
-  //             emit Claim(stakerAddr, rewardAmount, block.timestamp);
-  //           }
-  //         } else {
-  //             unStaking(stakerAddr, _duration);
-  //         }
-  //       }
-  //     }
-  //   }
-  // }
-
-  // function reSetInfo(address _address, uint _duration) internal {
-  //   StakerInfo storage staker = stakerInfo[_address][_duration];
-  //   delete staker.amount;
-  //   delete staker.startDate;
-  //   delete staker.duration;
-  //   delete staker.expireDate;
-  //   delete staker.interest;
-  //   delete staker.isHardStaker;
-  //   delete staker.isSoftStaker;
-  //   delete staker.candidate;
-  // }
-
-//   function get_list(uint _voteID, uint _listID) external view returns(string memory, uint) {
-//     Vote storage tmp_vote = votes[_voteID];
-//     string memory tmp_list = tmp_vote.list[_listID].title;
-//     uint tmp_cnt = tmp_vote.list[_listID].voteCnt;
-//     return (tmp_list, tmp_cnt);
-//   }
-
-  function addCnt(uint _voteID, uint _listID) external returns(bool) {
-    require(_voteID < votesCounter, "Not valid Vote ID");
-    Vote storage tmp_vote = vote_array[_voteID];
-    require(_listID < tmp_vote.lists.length, "Not valid List ID");
-    uint tier = tierStatus[msg.sender];
-    uint balance = balanceOf(msg.sender);
-    uint voteValue = (tier * (tier + 1) / 2) * balance;
-    tmp_vote.lists[_listID].voteCnt += voteValue;
-    return true;
   }
 
 }
