@@ -32,6 +32,12 @@ contract ExoToken is
 	// 	__Ownable_init();
 	// }
 
+  address public admin;
+
+  constructor() {
+    admin = msg.sender;
+  }
+
 	function pause() public onlyOwner {
 		_pause();
 	}
@@ -41,6 +47,7 @@ contract ExoToken is
 	}
 
 	function mint(address to, uint amount) public onlyOwner {
+    require(msg.sender == admin, 'only admin');
 		_mint(to, amount);
 	}
 

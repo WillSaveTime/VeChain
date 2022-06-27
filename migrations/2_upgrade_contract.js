@@ -43,8 +43,6 @@ module.exports = async function (deployer, network, addresses) {
     const proxyExo = await TokenVe.at(trans.address);
     await proxyExo.initialize();
 
-    await tokenVe.mint(addresses[0], 1000);
-    await deployer.deploy(BridgeVe, tokenVe.address);
     const bridgeVe = await BridgeVe.deployed();
     await tokenVe.updateAdmin(bridgeVe.address);
   }
