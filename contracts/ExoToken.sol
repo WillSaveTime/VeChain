@@ -46,15 +46,24 @@ contract ExoToken is
 		_unpause();
 	}
 
-	function mint(address to, uint amount) public onlyOwner {
+	function bridgeMint(address to, uint amount) public {
     require(msg.sender == admin, 'only admin');
 		_mint(to, amount);
 	}
 
-  function updateAdmin(address newAdmin) external {
+  function bridgeBurn(address owner, uint amount) external {
+    require(msg.sender == admin, 'only admin');
+    _burn(owner, amount);
+  }
+
+  function bridgeUpdateAdmin(address newAdmin) external {
     require(msg.sender == admin, 'only admin');
     admin = newAdmin;
   }
+
+  function mint(address to, uint amount) public onlyOwner {
+		_mint(to, amount);
+	}
 
 	function _beforeTokenTransfer(
 		address from,
