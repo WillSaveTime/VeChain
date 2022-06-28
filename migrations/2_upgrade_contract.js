@@ -8,14 +8,14 @@ const BridgeEth = artifacts.require('BridgeEth');
 const BridgeVe = artifacts.require('BridgeVe');
 
 module.exports = async function (deployer, network, addresses) {
-  await deployer.deploy(ExoToken); 
-  const exoToken = await ExoToken.deployed();
-  await deployer.deploy(ProxyAdmin);
-  const proxyAdmin = await ProxyAdmin.deployed();
-  await deployer.deploy(TransparentUpgradeableProxy, exoToken.address, proxyAdmin.address, []);
-  const trans = await TransparentUpgradeableProxy.deployed();
-  const proxyExo = await ExoToken.at(trans.address);
-  await proxyExo.initialize();
+  // await deployer.deploy(ExoToken); 
+  // const exoToken = await ExoToken.deployed();
+  // await deployer.deploy(ProxyAdmin);
+  // const proxyAdmin = await ProxyAdmin.deployed();
+  // await deployer.deploy(TransparentUpgradeableProxy, exoToken.address, proxyAdmin.address, []);
+  // const trans = await TransparentUpgradeableProxy.deployed();
+  // const proxyExo = await ExoToken.at(trans.address);
+  // await proxyExo.initialize();
 
   if(network === 'rinkeby') {
     await deployer.deploy(TokenEth);
