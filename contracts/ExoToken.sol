@@ -7,7 +7,6 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/common/ERC2981Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
@@ -19,24 +18,10 @@ contract ExoToken is
 	PausableUpgradeable,
 	OwnableUpgradeable,
 	ERC20PermitUpgradeable,
-	ERC20VotesUpgradeable,
-	ERC2981Upgradeable
+	ERC20VotesUpgradeable
 {
-  /// @custom:oz-upgrades-unsafe-allow constructor
-	// constructor() initializer {}
-
-	// function initialize() public initializer {
-	// 	__ERC20_init("ExoToken", "EXO");
-	// 	__ERC2981_init();
-	// 	__Pausable_init();
-	// 	__Ownable_init();
-	// }
 
   address public admin;
-
-  constructor() {
-    admin = msg.sender;
-  }
 
 	function pause() public onlyOwner {
 		_pause();
@@ -108,8 +93,8 @@ contract ExoToken is
   uint constant _decimals = 1E18;
   uint private blockTimeStamp;
   uint private currentTime;
-  uint public votesCounter = 0;
-  uint public curVoteCnt = 0;
+  uint public votesCounter;
+  uint public curVoteCnt;
   uint[] minAmount;
   uint[] stakePeriod;
   uint[] percent;

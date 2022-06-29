@@ -3,7 +3,7 @@ const { Driver, SimpleNet, SimpleWallet } = require('@vechain/connex-driver')
 const { abi } = require('thor-devkit')
 
 const {contractABI} = require('./abi')
-const ADDRESS = "0x8081D09E642f9659bec52b160770d788494855fC"
+const ADDRESS = "0xe5DCDAeE57c42A016919c2F6078E6d217dF53F50"
 
 require('dotenv').config();
 
@@ -18,10 +18,9 @@ module.exports = async done => {
   const accForMP = connex.thor.account(ADDRESS)
   const findMethodABI = (abi, method) => abi[abi.findIndex(mthd => mthd.name === method)];
   const testMethod = accForMP.method(findMethodABI(contractABI, "balanceOf"))
-  console.log(testMethod.call)
   await testMethod.call('0x68e64e74841f761CF6f1181Ae522C09ab0f6Cd6F').then(output=>{
     baseuri = output.decoded[0];
-    console.log(output)
+    console.log(baseuri)
   });
   done();
 }

@@ -4,7 +4,7 @@ const { abi } = require('thor-devkit')
 
 const {contractABI} = require('./abi')
 const {bridgeABI} = require('./bridgeAbi')
-const ADDRESS = "0x07d05404853fAc4dD62c103943511BDc953558fb"
+const ADDRESS = "0xbE25bFD67eb51A4B1C21d41A099c33Ee750F522E"
 
 require('dotenv').config();
 
@@ -16,9 +16,8 @@ module.exports = async done => {
   const connex = new Framework(driver)
   const accForMP = connex.thor.account(ADDRESS)
   const findMethodABI = (abi, method) => abi[abi.findIndex(mthd => mthd.name === method)];
-  const testMethod = accForMP.method(findMethodABI(bridgeABI, "bridgeBurn"))
-  console.log(testMethod)
-  testMethod.transact()
+  const testMethod = accForMP.method(findMethodABI(bridgeABI, "burn"))
+  await testMethod.transact("0x68e64e74841f761CF6f1181Ae522C09ab0f6Cd6F", 55555555)
     .request().then(result => {
       console.log(result);
     })
