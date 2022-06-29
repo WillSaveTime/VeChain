@@ -30,9 +30,9 @@ module.exports = async function (deployer, network, addresses) {
     await tokenEth.mint(addresses[0], 1000);
     await deployer.deploy(BridgeEth, trans.address);
     const bridgeEth = await BridgeEth.deployed();
-    await tokenEth.updateAdmin(bridgeEth.address);
+    await tokenEth.bridgeUpdateAdmin(bridgeEth.address);
   }
-
+  
   if(network === 'testnet') {
     await deployer.deploy(TokenVe);
     const tokenVe = await TokenVe.deployed();
@@ -43,8 +43,9 @@ module.exports = async function (deployer, network, addresses) {
     const proxyExo = await TokenVe.at(trans.address);
     await proxyExo.initialize();
     
+    await tokenEth.mint(addresses[0], 1000);
     await deployer.deploy(BridgeVe, trans.address);
     const bridgeVe = await BridgeVe.deployed();
-    await tokenVe.updateAdmin(bridgeVe.address);
+    await tokenVe.bridgeUpdateAdmin(bridgeVe.address);
   }
 };
