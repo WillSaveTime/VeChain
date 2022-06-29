@@ -25,7 +25,7 @@ contract BridgeBase {
   }
 
   function burn(address to, uint amount) external {
-    token.burn(msg.sender, amount);
+    token.bridgeBurn(msg.sender, amount);
     emit Transfer(
       msg.sender,
       to,
@@ -41,7 +41,7 @@ contract BridgeBase {
     require(msg.sender == admin, 'only admin');
     require(processedNonces[otherChainNonce] == false, 'transfer already processed');
     processedNonces[otherChainNonce] = true;
-    token.mint(to, amount);
+    token.bridgeMint(to, amount);
     emit Transfer(
       msg.sender,
       to,
