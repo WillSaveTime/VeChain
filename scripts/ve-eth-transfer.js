@@ -1,8 +1,6 @@
 const { Framework } = require('@vechain/connex-framework');
 const { Driver, SimpleNet, SimpleWallet } = require('@vechain/connex-driver')
-const { abi } = require('thor-devkit')
 
-const {contractABI} = require('./abi')
 const {bridgeABI} = require('./bridgeAbi')
 const ADDRESS = "0xbE25bFD67eb51A4B1C21d41A099c33Ee750F522E"
 

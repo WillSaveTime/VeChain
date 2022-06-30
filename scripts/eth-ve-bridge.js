@@ -1,9 +1,14 @@
 const Web3 = require('web3');
+
+const { Framework } = require('@vechain/connex-framework');
+const { Driver, SimpleNet, SimpleWallet } = require('@vechain/connex-driver')
+
+const {bridgeABI} = require('./bridgeAbi')
+const ADDRESS = "0xbE25bFD67eb51A4B1C21d41A099c33Ee750F522E"
+
 const BridgeEth = require('../build/contracts/BridgeEth.json');
-const BridgeBsc = require('../build/contracts/BridgeBsc.json');
 
 const web3Eth = new Web3('Infura Rinkeby  url');
-const web3Bsc = new Web3('https://data-seed-prebsc-1-s1.binance.org:8545');
 const adminPrivKey = '';
 const { address: admin } = web3Bsc.eth.accounts.wallet.add(adminPrivKey);
 
@@ -12,10 +17,14 @@ const bridgeEth = new web3Eth.eth.Contract(
   BridgeEth.networks['4'].address
 );
 
-const bridgeBsc = new web3Bsc.eth.Contract(
-  BridgeBsc.abi,
-  BridgeBsc.networks['97'].address
-);
+const net = new SimpleNet('https://testnet.veblocks.net/')
+const wallet = new SimpleWallet();
+wallet.import(process.env.PRIVATE_KEY);
+const driver = await Driver.connect(net, wallet);
+const connex = new Framework(driver)
+const accForMP = connex.thor.account(ADDRESS)
+const findMethodABI = (abi, method) => abi[abi.findIndex(mthd => mthd.name === method)];
+const testMethod = accForMP.method(findMethodABI(bridgeABI, "burn"))
 
 bridgeEth.events.Transfer(
   {fromBlock: 0, step: 0}
@@ -23,11 +32,8 @@ bridgeEth.events.Transfer(
 .on('data', async event => {
   const { from, to, amount, date, nonce } = event.returnValues;
 
-  const tx = bridgeBsc.methods.mint(to, amount, nonce);
-  const [gasPrice, gasCost] = await Promise.all([
-    web3Bsc.eth.getGasPrice(),
-    tx.estimateGas({from: admin}),
-  ]);
+  const tx = await testMethod.transact(to, amount).request();
+
   const data = tx.encodeABI();
   const txData = {
     from: admin,

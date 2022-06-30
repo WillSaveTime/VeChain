@@ -15,7 +15,8 @@
     "@truffle/hdwallet-provider": "^2.0.9",
     "truffle": "^5.5.1",
     "truffle-plugin-verify": "^0.5.26",
-    "web3": "^1.7.0"
+    "web3": "^1.7.0",
+    "web3-providers-connex": "^0.7.4"
   },
   "devDependencies": {
     "@openzeppelin/truffle-upgrades": "^1.12.0",

@@ -1,4 +1,7 @@
 const { Framework } = require('@vechain/connex-framework');
+import { web3, web3 } from '@openzeppelin/test-helpers/src/setup';
+const thor = require('web3-providers-connex')
+
 const { Driver, SimpleNet, SimpleWallet } = require('@vechain/connex-driver')
 const { abi } = require('thor-devkit')
 
@@ -15,6 +18,11 @@ module.exports = async done => {
   wallet.import(process.env.PRIVATE_KEY);
   const driver = await Driver.connect(net, wallet);
   const connex = new Framework(driver)
+  const provider = new thor.ConnexProvider({ connex: connex })
+  const web3 = new web3(provider);
+  console.log(web3, 'web3')
+
+  return;
   const accForMP = connex.thor.account(ADDRESS)
   const findMethodABI = (abi, method) => abi[abi.findIndex(mthd => mthd.name === method)];
   const testMethod = accForMP.method(findMethodABI(contractABI, "balanceOf"))
