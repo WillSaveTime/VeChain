@@ -2,7 +2,7 @@ const { Framework } = require('@vechain/connex-framework');
 const { Driver, SimpleNet, SimpleWallet } = require('@vechain/connex-driver')
 
 const {bridgeABI} = require('./bridgeAbi')
-const ADDRESS = "0xbE25bFD67eb51A4B1C21d41A099c33Ee750F522E"
+const ADDRESS = "0x815dCA65757Bd762BAd609bD275Bebd3173f16A1"
 
 require('dotenv').config();
 
