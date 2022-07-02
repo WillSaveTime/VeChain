@@ -13,6 +13,7 @@ import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 
 contract ExoToken is
 	Initializable,
+  IERC20Upgradeable,
 	ERC20Upgradeable,
 	ERC20BurnableUpgradeable,
 	PausableUpgradeable,
@@ -22,6 +23,7 @@ contract ExoToken is
 {
 
   address public admin;
+  IERC20Upgradeable GCRED = IERC20Upgradeable('0x');
 
 	function pause() public onlyOwner {
 		_pause();
