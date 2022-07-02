@@ -10,5 +10,7 @@ contract TokenEth is GcredToken {
 		__Pausable_init();
 		__Ownable_init();
 		admin = msg.sender;
+		MDwallet = msg.sender;
+		DAOwallet = msg.sender;
 	}
 }

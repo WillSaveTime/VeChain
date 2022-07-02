@@ -18,13 +18,13 @@ contract GcredToken is
 	PausableUpgradeable,
 	OwnableUpgradeable,
 	ERC20PermitUpgradeable,
-	ERC20VotesUpgradeable,
-  SafeMathUpgradeable
+	ERC20VotesUpgradeable
 {
 
   address public admin;
-  address public MDwallet = '';
-  address public DAOwallet = '';
+  address public MDwallet;
+  address public DAOwallet;
+	using SafeMathUpgradeable for uint;
 
 	function pause() public onlyOwner {
 		_pause();
