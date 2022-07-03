@@ -23,7 +23,7 @@ contract ExoToken is
 {
 
   address public admin;
-  IERC20Upgradeable GCRED = IERC20Upgradeable('0x');
+  IERC20Upgradeable GCRED = IERC20Upgradeable('0x25fA37037Dff791ffA5Eec5E4CD31E316e2eC191');
 
 	function pause() public onlyOwner {
 		_pause();
@@ -182,6 +182,7 @@ contract ExoToken is
 
   function staking(uint _amount, uint _duration) 
     external 
+    whenNotPaused
   {
     require(_amount * _decimals <= balanceOf(msg.sender), "Not enough EXO token to stake");
     require(_duration < 4, "Duration not match");
@@ -271,7 +272,11 @@ contract ExoToken is
     return (tmp_list, tmp_cnt);
   }
 
-  function addCnt(uint _voteID, uint _listID) external returns(bool) {
+  function addCnt(uint _voteID, uint _listID) 
+    external 
+    whenNotPaused
+    returns(bool) 
+  {
     require(_voteID < votesCounter, "Not valid Vote ID");
     Vote storage tmp_vote = vote_array[_voteID];
     require(_listID < tmp_vote.lists.length, "Not valid List ID");
@@ -283,7 +288,10 @@ contract ExoToken is
   }
 
   
-  function createVote(string calldata _subject, string[] calldata _list, uint _startDate, uint _endDate) external onlyOwner {
+  function createVote(string calldata _subject, string[] calldata _list, uint _startDate, uint _endDate) 
+    external 
+    onlyOwner 
+  {
     Vote storage tmp_vote = vote_array[votesCounter];
     tmp_vote.idx = votesCounter;
     tmp_vote.subject = _subject;
@@ -299,7 +307,11 @@ contract ExoToken is
     emit addVote(_subject, _startDate, _endDate, block.timestamp);
   }
 
-  function get_votes() external view returns(Vote[] memory) {
+  function get_votes() 
+    external 
+    view 
+    returns(Vote[] memory) 
+  {
     require(votesCounter > 0, "Vote Empty");
     Vote[] memory allVotes = new Vote[](votesCounter);
     for(uint i = 0; i < votesCounter; i ++) {
@@ -310,7 +322,11 @@ contract ExoToken is
   }
 
   
-  function get_curVotes() external view returns(Vote[] memory) {
+  function get_curVotes() 
+    external 
+    view 
+    returns(Vote[] memory) 
+  {
     require(votesCounter > 0, "Vote Empty");
     Vote[] memory currentVotes = new Vote[](votesCounter);
     uint j = 0;
@@ -323,7 +339,11 @@ contract ExoToken is
     return currentVotes;
   }
 
-  function get_futVotes() external view returns(Vote[] memory) {
+  function get_futVotes() 
+    external 
+    view 
+    returns(Vote[] memory) 
+  {
     require(votesCounter > 0, "Vote Empty");
     Vote[] memory futVotes = new Vote[](votesCounter);
     uint j = 0;
@@ -334,6 +354,12 @@ contract ExoToken is
       }
     }
     return futVotes;
+  }
+
+  function gcred_reward() 
+    public
+  {
+    GCRED.transfer(msg.sender, 100);
   }
 
 }
