@@ -13,7 +13,6 @@ import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 
 contract ExoToken is
 	Initializable,
-  IERC20Upgradeable,
 	ERC20Upgradeable,
 	ERC20BurnableUpgradeable,
 	PausableUpgradeable,
@@ -23,7 +22,7 @@ contract ExoToken is
 {
 
   address public admin;
-  IERC20Upgradeable GCRED = IERC20Upgradeable('0x25fA37037Dff791ffA5Eec5E4CD31E316e2eC191');
+  address public GCRED;
 
 	function pause() public onlyOwner {
 		_pause();
@@ -33,19 +32,38 @@ contract ExoToken is
 		_unpause();
 	}
 
-	function bridgeMint(address to, uint amount) public {
+	function bridgeMint(address to, uint amount) 
+    public
+    whenNotPaused 
+  {
     require(msg.sender == admin, 'only admin');
 		_mint(to, amount);
 	}
 
-  function bridgeBurn(address owner, uint amount) external {
+  function bridgeBurn(address owner, uint amount) 
+    external 
+    whenNotPaused
+  {
     require(msg.sender == admin, 'only admin');
     _burn(owner, amount);
   }
 
-  function bridgeUpdateAdmin(address newAdmin) external {
+  function bridgeUpdateAdmin(address newAdmin) 
+    external
+    whenNotPaused 
+  {
     require(msg.sender == admin, 'only admin');
     admin = newAdmin;
+  }
+
+  function updateGCRED(address newAddr) 
+    public 
+    onlyOwner 
+    whenNotPaused
+    returns(bool) 
+  {
+    GCRED = newAddr;
+    return true;
   }
 
   function mint(address to, uint amount) public onlyOwner {
@@ -161,10 +179,19 @@ contract ExoToken is
     return percent;
   }
 
+  function gcred_amount() 
+    internal 
+    returns(uint[] memory) 
+  {
+    gcred = [0, 0, 0, 242, 0, 0, 266, 354, 0, 0, 293, 390, 0, 0, 322, 426];
+    return gcred;
+  }
+
   function transfer(address to, uint256 amount) 
     public 
     virtual 
     override 
+    whenNotPaused
     returns (bool) 
   {
     address owner = _msgSender();
@@ -209,15 +236,17 @@ contract ExoToken is
 
   function _calcReward(address _address, uint _duration) 
     internal 
-    returns(uint reward) 
+    returns(uint reward, gcred_amount) 
   {
     StakerInfo storage staker = stakerInfo[_address][_duration];
     uint[] memory getPercent = array_percent();
     reward = staker.amount * getPercent[staker.interest] / staker.duration / 365000;
+    uint[] memory getGcredAmount = gcred_amount();
+    gcred_amount = getGcredAmount[staker.interest];
   }
 
   function unStaking(address _address, uint _duration) 
-    private 
+    internal 
   {
     StakerInfo storage staker = stakerInfo[_address][_duration];
     unStakableAmount = staker.amount;
@@ -241,8 +270,9 @@ contract ExoToken is
           if(staker.expireDate > blockTimeStamp){
             StakeArray[i][_duration].push(stakerAddr); 
             if(staker.interest != 0) {
-              uint rewardAmount = _calcReward(stakerAddr, _duration);
+              (uint rewardAmount, uint gcredAmount) = _calcReward(stakerAddr, _duration);
               transfer(stakerAddr, rewardAmount);
+              IERC20Upgradeable(Gcred).transfer(stakerAddr, gcredAmount);
               emit Claim(stakerAddr, rewardAmount, block.timestamp);
             }
           } else {
@@ -272,7 +302,7 @@ contract ExoToken is
     return (tmp_list, tmp_cnt);
   }
 
-  function addCnt(uint _voteID, uint _listID) 
+  function add_vote(uint _voteID, uint _listID) 
     external 
     whenNotPaused
     returns(bool) 
@@ -290,6 +320,7 @@ contract ExoToken is
   
   function createVote(string calldata _subject, string[] calldata _list, uint _startDate, uint _endDate) 
     external 
+    whenNotPaused
     onlyOwner 
   {
     Vote storage tmp_vote = vote_array[votesCounter];
@@ -310,6 +341,7 @@ contract ExoToken is
   function get_votes() 
     external 
     view 
+    whenNotPaused
     returns(Vote[] memory) 
   {
     require(votesCounter > 0, "Vote Empty");
@@ -325,6 +357,7 @@ contract ExoToken is
   function get_curVotes() 
     external 
     view 
+    whenNotPaused
     returns(Vote[] memory) 
   {
     require(votesCounter > 0, "Vote Empty");
@@ -342,6 +375,7 @@ contract ExoToken is
   function get_futVotes() 
     external 
     view 
+    whenNotPaused
     returns(Vote[] memory) 
   {
     require(votesCounter > 0, "Vote Empty");
@@ -356,10 +390,15 @@ contract ExoToken is
     return futVotes;
   }
 
-  function gcred_reward() 
-    public
+  function GcredBalance() 
+    public 
+    view 
+    whenNotPaused
+    returns(uint, uint) 
   {
-    GCRED.transfer(msg.sender, 100);
+    uint user_balalance = IERC20Upgradeable(GCRED).balanceOf(msg.sender);
+    uint _balalance = IERC20Upgradeable(GCRED).balanceOf(address(this));
+    return (user_balalance, _balalance);
   }
 
 }
