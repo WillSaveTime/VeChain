@@ -124,12 +124,14 @@ contract ExoToken is
   uint private blockTimeStamp;
   uint private interest;
   uint private reward_from_FN;
+  uint private totalRewardAmount;
   uint[] stakePeriod;
   uint[] minAmount;
   uint[] percent;
   uint[] gcred;
   uint[] percentFN;
   uint constant _decimals = 1E18;
+  uint constant _maxReward = 35E25;
 
   struct StakerInfo{
     uint amount;
@@ -280,6 +282,7 @@ contract ExoToken is
     public 
   {
     require(_duration < 4, "Duration not match");
+    require(totalRewardAmount > _maxReward, "Total reward amount exceeds!");
     blockTimeStamp = block.timestamp;
     for (uint i = 0; i < 4; i ++) { //tier
       if(StakeArray[i][_duration].length > 0) {
@@ -299,7 +302,8 @@ contract ExoToken is
             StakeArray[i][_duration].push(stakerAddr); 
             if(staker.interest != 0) {
               (uint rewardAmount, uint gcredAmount) = _calcReward(stakerAddr, _duration);
-              transfer(stakerAddr, rewardAmount);
+              totalRewardAmount += rewardAmount;
+              mint(stakerAddr, rewardAmount);
               IERC20Upgradeable(GCRED).transfer(stakerAddr, gcredAmount);
               emit Claim(stakerAddr, rewardAmount, block.timestamp);
             }
