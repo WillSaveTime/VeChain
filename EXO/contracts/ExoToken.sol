@@ -10,6 +10,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpg
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "./GcredToken.sol";
 
 contract ExoToken is
 	Initializable,
@@ -131,7 +132,7 @@ contract ExoToken is
   uint[] gcred;
   uint[] percentFN;
   uint constant _decimals = 1E18;
-  uint constant _maxReward = 35E25;
+  uint constant _maxReward = 35E26;
 
   struct StakerInfo{
     uint amount;
@@ -159,9 +160,26 @@ contract ExoToken is
   }
 
   Vote[] public vote_array;
+  
+  /**
+  * @notice Get Staking Info
+  * @dev Get Staking Info according to user address and its duration (0:Soft, 1:30 Days, 2:60 Days, 3:90 Days)
+  * first input:: address: user address, second input:: uint: staking duration
+  */
+  mapping(address => mapping(uint => StakerInfo)) public stakerInfo;
 
-  mapping(address => mapping(uint => StakerInfo)) private stakerInfo;
+  /**
+  * @notice Get Staking array
+  * @dev Get Staking Array according to Tier Number (0:Default, 1, 2, 3) and Staking Duration (0:Soft, 1:30 Days, 2:60 Days, 3:90 Days)
+  * first input:: uint: Tier Number, second input:: uint: staking duration
+  */
   mapping(uint => mapping(uint => address[])) private StakeArray;
+
+  /**
+  * @notice Get Tier Status
+  * @dev Get User's status address according to his address (0:Default, 1, 2, 3)
+  * input: address
+  */
   mapping(address => uint) public tierStatus;
 
   function _arrayMinAmount() 
@@ -176,7 +194,7 @@ contract ExoToken is
     internal 
     returns(uint[] memory) 
   {
-    stakePeriod = [0, 30 days, 60 days, 90 days];
+    stakePeriod = [0, 30 seconds, 60 seconds, 90 seconds];
     return stakePeriod;
   }
 
@@ -217,7 +235,7 @@ contract ExoToken is
       uint[] memory min = _arrayMinAmount();
       uint ExoBalance = balanceOf(msg.sender);
       uint remainBalance = ExoBalance.sub(amount);
-      if(remainBalance < min[tierStatus[msg.sender]].mul(_decimals)) tierStatus[msg.sender] -= 1;
+      if(remainBalance < min[tierStatus[msg.sender]]) tierStatus[msg.sender] -= 1;
     }
 
     _transfer(owner, to, amount);
@@ -228,7 +246,7 @@ contract ExoToken is
     external 
     whenNotPaused
   {
-    require(_amount * _decimals <= balanceOf(msg.sender), "Not enough EXO token to stake");
+    require(_amount <= balanceOf(msg.sender), "Not enough EXO token to stake");
     require(_duration < 4, "Duration not match");
 
     if(msg.sender == FNwallet) {
@@ -238,11 +256,11 @@ contract ExoToken is
       StakerInfo storage staker = stakerInfo[msg.sender][_duration];
       uint[] memory min = _arrayMinAmount();
       uint[] memory period = _arrayPeriod();
-      require(_amount > min[tierStatus[msg.sender]], "The staking amount must be greater than the minimum amount for that tier.");
+      require(_amount > min[tierStatus[msg.sender]].mul(_decimals), "The staking amount must be greater than the minimum amount for that tier.");
       if(_duration == 0) staker.isSoftStaker = true;
       else staker.isHardStaker = true;
       blockTimeStamp = block.timestamp;
-      staker.amount = _amount.mul(_decimals);
+      staker.amount = _amount;
       staker.startDate = blockTimeStamp;
       staker.expireDate = blockTimeStamp.add(period[_duration]);
       staker.duration = period[_duration];
@@ -250,9 +268,9 @@ contract ExoToken is
       staker.candidate = _amount > min[tierStatus[msg.sender] + 1] ? true : false;
       StakeArray[tierStatus[msg.sender]][_duration].push(msg.sender);
     }
-
+    
+    transfer(address(this), _amount);
     emit Stake(msg.sender, _amount, block.timestamp);
-    transfer(address(this), _amount.mul(_decimals));
   }
 
   function _calcReward(address _address, uint _duration) 
@@ -271,8 +289,7 @@ contract ExoToken is
   {
     StakerInfo storage staker = stakerInfo[_address][_duration];
     unStakableAmount = staker.amount;
-    
-    transfer(_address, unStakableAmount);
+    _transfer(address(this), _address, unStakableAmount);
     tierStatus[_address] = staker.candidate ? tierStatus[_address] + 1 : tierStatus[_address];
     reSetInfo(_address, _duration);
     emit UnStake(_address, unStakableAmount, block.timestamp);
@@ -282,19 +299,21 @@ contract ExoToken is
     public 
   {
     require(_duration < 4, "Duration not match");
-    require(totalRewardAmount > _maxReward, "Total reward amount exceeds!");
+    require(totalRewardAmount <= _maxReward, "Total reward amount exceeds!");
     blockTimeStamp = block.timestamp;
     for (uint i = 0; i < 4; i ++) { //tier
       if(StakeArray[i][_duration].length > 0) {
         uint stakers = StakeArray[i][_duration].length;
         uint[] memory getPercent = _percentOfFN();
         if(i > 0) {
-          uint fn_reward = reward_from_FN.mul(getPercent[(i + 4) * _duration - 4]).div(stakers).div(10);
+          //FSN Reward
+          uint fn_reward = reward_from_FN.mul(getPercent[(i + 4) * _duration - 4]).div(stakers).div(1000);
           for (uint j = 0; j < StakeArray[i][_duration].length; j ++) { //duration
             address stakerAddr = StakeArray[i][_duration][j];
-            transfer(stakerAddr, fn_reward);
+            mint(stakerAddr, fn_reward);
           }
         }
+        //Normal Reward
         for (uint j = 0; j < StakeArray[i][_duration].length; j ++) { //duration
           address stakerAddr = StakeArray[i][_duration][j];
           StakerInfo memory staker = stakerInfo[stakerAddr][_duration];
@@ -304,7 +323,7 @@ contract ExoToken is
               (uint rewardAmount, uint gcredAmount) = _calcReward(stakerAddr, _duration);
               totalRewardAmount += rewardAmount;
               mint(stakerAddr, rewardAmount);
-              IERC20Upgradeable(GCRED).transfer(stakerAddr, gcredAmount);
+              IGcredToken(GCRED).mint(stakerAddr, gcredAmount);
               emit Claim(stakerAddr, rewardAmount, block.timestamp);
             }
           } else {
@@ -421,4 +440,5 @@ contract ExoToken is
     }
     return futVotes;
   }
+
 }
