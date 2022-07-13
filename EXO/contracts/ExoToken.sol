@@ -10,7 +10,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpg
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
-// import "./GcredToken.sol";
+import "./GcredToken.sol";
 
 contract ExoToken is
 	Initializable,
@@ -23,7 +23,7 @@ contract ExoToken is
 {
 
   event Stake(address indexed _from, uint _amount, uint timestamp);
-  event Claim(address indexed _to, uint _amount, uint timestamp);
+  event Claim(address indexed _to, uint timestamp);
   event UnStake(address indexed _from, uint _amount, uint timestamp);
   event addVote(string subject, uint start, uint end, uint timestamp);
 
@@ -125,11 +125,12 @@ contract ExoToken is
   uint private unStakableAmount;
   uint private blockTimeStamp;
   uint private interest;
-  uint private reward_from_FN;
+  uint private reward_from_FN = 1E26;
   uint private totalRewardAmount;
   bool private isHardStaker;
   bool private isSoftStaker;
-  uint private nextClaimTime = block.timestamp + 1 days;
+  bool public claimFlag;
+  uint private nextClaimTime;
   uint[] stakePeriod;
   uint[] minAmount;
   uint[] percent;
@@ -139,7 +140,6 @@ contract ExoToken is
   uint constant _maxReward = 35E26;
 
   struct StakerInfo{
-    uint idx;
     address owner;
     uint amount;
     uint startDate;
@@ -166,16 +166,8 @@ contract ExoToken is
     uint listCnt;
   }
 
-  StakerInfo[] public _stakerInfo;
-  StakerInfo[][4][4] public _stakerInfo1;
+  StakerInfo[][4][4] public _stakerInfo;
   List[] private _list_;
-
-  /**
-  * @notice Get Staking Info
-  * @dev Get Staking Info according to user address and its duration (0:Soft, 1:30 Days, 2:60 Days, 3:90 Days)
-  * first input:: address: user address, second input:: uint: staking duration
-  */
-  mapping(address => mapping(uint => StakerInfo)) private stakerInfo;
 
   /**
   * @notice Get Tier Status
@@ -258,15 +250,14 @@ contract ExoToken is
     } else {
       uint[] memory min = _minAmount();
       uint[] memory period = _arrayPeriod();
-      // require(_amount > min[tierStatus[msg.sender]].mul(_decimals), "The staking amount must be greater than the minimum amount for that tier.");
+      blockTimeStamp = block.timestamp;
 
-      _stakerInfo1[tierStatus[msg.sender]][_duration].push(
+      _stakerInfo[tierStatus[msg.sender]][_duration].push(
         StakerInfo(
-          stakerCnt,
           msg.sender,
           _amount,
-          block.timestamp,
-          block.timestamp.add(period[_duration]),
+          blockTimeStamp,
+          blockTimeStamp.add(period[_duration]),
           _duration,
           tierStatus[msg.sender].mul(4).add(_duration),
           isHardStaker,
@@ -275,27 +266,28 @@ contract ExoToken is
           block.timestamp
       ));
       stakerCnt ++;
+
     }
     
     transfer(address(this), _amount);
     emit Stake(msg.sender, _amount, block.timestamp);
   }
 
-  function __allStakers() 
+  function allStakers() 
     public 
     view 
     whenNotPaused
     returns(StakerInfo[] memory) 
   {
     require(stakerCnt > 0, "Nobody staked");
-    StakerInfo[] memory _allStakers = new StakerInfo[](stakerCnt);
     uint _idx;
-    for(uint i = 0; i < 4 ; i ++) { // tier
-      for(uint j =  0; j < 4; j ++) { // duration
-        uint len = _stakerInfo1[i][j].length;
-        for(uint k = 0; k < len; k ++) { // index
+    StakerInfo[] memory _allStakers = new StakerInfo[](stakerCnt);
+    for(uint i = 0; i < 4 ; i ++) {
+      for(uint j =  0; j < 4; j ++) {
+        uint len = _stakerInfo[i][j].length;
+        for(uint k = 0; k < len; k ++) {
+          _allStakers[_idx] = _stakerInfo[i][j][k];
           _idx ++;
-          _allStakers[_idx] = _stakerInfo1[i][j][k];
         }
       }
     }
@@ -312,9 +304,9 @@ contract ExoToken is
     uint cnt_;
     for(uint i = 0; i < 4 ; i ++) { // tier
       for(uint j =  0; j < 4; j ++) { // duration
-        uint len = _stakerInfo1[i][j].length;
+        uint len = _stakerInfo[i][j].length;
         for(uint k = 0; k < len; k ++) { // index
-          if(_stakerInfo1[i][j][k].owner == _address) {
+          if(_stakerInfo[i][j][k].owner == _address) {
             cnt_ ++;
           }
         }
@@ -325,62 +317,87 @@ contract ExoToken is
     uint idx = 0;
     for(uint i = 0; i < 4 ; i ++) { // tier
       for(uint j =  0; j < 4; j ++) { // duration
-        uint len = _stakerInfo1[i][j].length;
+        uint len = _stakerInfo[i][j].length;
         for(uint k = 0; k < len; k ++) { // index
-          _currentStaker[idx] = _stakerInfo1[i][j][k];
-          idx ++;
+          if(_stakerInfo[i][j][k].owner == _address) {
+            _currentStaker[idx] = _stakerInfo[i][j][k];
+            idx ++;
+          }
         }
       }
     }
     return _currentStaker;
   }
 
-  function multiClaim() public onlyOwner whenNotPaused {
+  function multiClaim() 
+   public 
+   onlyOwner
+   whenNotPaused
+  {
     require(stakerCnt > 0, "Nobody staked");
-    require(nextClaimTime > block.timestamp, "Not started multi claim");
-    uint[] memory cnt;
+    if(claimFlag) {
+      require(nextClaimTime >= block.timestamp, "Not started multi Claim");
+    }
     uint[] memory getPercent = _arrayPercent();
-    // uint[] memory getGcredAmount = _gcredAmount();
+    uint[] memory percentForFn = _percentOfFN();
+    uint[] memory getGcredAmount = _gcredAmount();
+    for(uint i = 0; i < 4 ; i ++) { // tier
+      for(uint j =  0; j < 4; j ++) { // duration
+        uint len = _stakerInfo[i][j].length;
+        if(len > 0) {
+          uint idx = i.mul(4).add(j);
+          uint FN_reward = reward_from_FN.mul(percentForFn[idx]).div(len).div(1000);
+          for(uint k = 0; k < _stakerInfo[i][j].length; k ++) { // index
+            StakerInfo memory tmp_staker = _stakerInfo[i][j][k];
 
-    for(uint i = 0; i < stakerCnt; i ++) {
-      StakerInfo storage tmp_staker = _stakerInfo[i];
-      cnt[tmp_staker.interest] ++;
-      if(tmp_staker.expireDate > block.timestamp) {
-        if(nextClaimTime - tmp_staker.startDate > 2 minutes) {
-          uint reward = tmp_staker.amount * getPercent[tmp_staker.interest].div(365000);
-          // uint _gcred_ = getGcredAmount[tmp_staker.interest].div(365000);
-          mint(tmp_staker.owner, reward);
-          // IGcredToken(GCRED).mint(tmp_staker.owner, _gcred_);
+            if(block.timestamp - tmp_staker.latestClaim > 1 days) {
+              if(tmp_staker.expireDate > block.timestamp) {
+
+                uint reward = tmp_staker.amount * getPercent[tmp_staker.interest].div(365000);
+                uint gcredReward = getGcredAmount[tmp_staker.interest].div(365000);
+                mint(tmp_staker.owner, reward);
+                mint(tmp_staker.owner, FN_reward);
+                IGcredToken(GCRED).mint(tmp_staker.owner, gcredReward);
+                tmp_staker.latestClaim = block.timestamp;
+                emit Claim(tmp_staker.owner, block.timestamp);
+
+              } else {
+
+                // delete tmp_staker;
+                _stakerInfo[i][j][k] = _stakerInfo[i][j][len-1];
+                _stakerInfo[i][j].pop();
+
+                _transfer(address(this), tmp_staker.owner, tmp_staker.amount);
+                emit UnStake(tmp_staker.owner, tmp_staker.amount, block.timestamp);
+              }
+              nextClaimTime = block.timestamp + 1 days;
+              claimFlag = true;
+            }
+          }
         }
-      } else {
-        delete _stakerInfo[i];
-        _stakerInfo[i] = _stakerInfo[stakerCnt - 1];
-        _stakerInfo.pop();
-        stakerCnt--;
-
-        _transfer(address(this), tmp_staker.owner, tmp_staker.amount);
-        tierStatus[tmp_staker.owner] = tmp_staker.candidate ? tierStatus[tmp_staker.owner] + 1 : tierStatus[tmp_staker.owner];
-        emit UnStake(tmp_staker.owner, tmp_staker.amount, block.timestamp);
       }
     }
-    nextClaimTime = block.timestamp + 2 minutes;
-    _calFnReward(cnt);
   }
 
-  function _calFnReward(uint[] memory _cnt) private {
-    uint[] memory getPercent = _percentOfFN();
-    uint[] memory FN_reward;
-    for(uint i = 0; i < _cnt.length; i ++) {
-      FN_reward[i] = reward_from_FN.mul(getPercent[i]).div(_cnt[i]).div(1000);
+  function _multiClaim(uint _tier, uint _duration) 
+   public 
+   whenNotPaused
+   returns(uint, uint, uint)
+  {
+    require(stakerCnt > 0, "Nobody staked");
+    uint[] memory percentForFn = _percentOfFN();
+    uint _FN_reward;
+    uint len;
+    uint len1;
+    len = _stakerInfo[_tier].length;
+    if(len > 0) {
+      len1 = _stakerInfo[_tier][_duration].length;
+      if(len1 > 0) {
+        uint idx = _tier * 4 + _duration + 5;
+        _FN_reward = reward_from_FN.mul(percentForFn[idx]).div(len1).div(1000);
+      }
     }
-    _FnClaim(FN_reward);
-  }
-
-  function _FnClaim(uint[] memory _FN_reward) private {
-    for(uint i = 0; i < stakerCnt; i ++) {
-      StakerInfo storage tmp_staker = _stakerInfo[i];
-      mint(tmp_staker.owner, _FN_reward[tmp_staker.interest]);
-    }
+    return(len, len1, _FN_reward);
   }
 
   function getList(uint _voteID, uint _listID) external view returns(string memory, uint) {
