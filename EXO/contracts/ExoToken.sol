@@ -359,6 +359,7 @@ contract ExoToken is
                 mint(tmp_staker.owner, FN_reward);
                 IGcredToken(GCRED).mint(tmp_staker.owner, gcredReward);
                 tmp_staker.latestClaim = block.timestamp;
+                tierStatus[tmp_staker] = tmp_staker.candidate ?  tierStatus[tmp_staker] + 1 : tierStatus[tmp_staker];
                 emit Claim(tmp_staker.owner, block.timestamp);
 
               } else {
