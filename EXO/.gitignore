@@ -1,8 +1,0 @@
-node_modules/
-build/
-keystore
-.env
-/Tokenomics.xlsx
-/~$Tokenomics.xlsx
-EXO.rar
-GCRED.rar
