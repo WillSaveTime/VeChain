@@ -143,8 +143,8 @@ contract ExoToken is
   uint constant _decimals = 1E18;
   uint constant _maxReward = 35E26;
   uint constant _claimDelay = 3 minutes;
-  uint constant _reward_from_FN = 1E28;
-
+  // uint constant _reward_from_FN = 1E28 ;
+  uint constant _reward_from_FN = 205479E18;
   struct StakerInfo{
     address owner;
     uint amount;
@@ -177,13 +177,18 @@ contract ExoToken is
   /**
   * @notice Get Tier Status
   * @dev Get User's status address according to his address (0:Default, 1, 2, 3)
-  * input: address
+  * tierStatus: status of user
+  * tierCandidate: true if user is available for update
+  * stakingCnt: count of staking done by specific user
+  * voteFlag: true if user voted
   */
   mapping(address => uint) public tierStatus;
   mapping(address => bool) public tierCandidate;
+  mapping(address => uint) public stakingCnt;
   mapping(uint => Vote) public mapVote;
   mapping(address => bool) private voteFlag;
 
+  //Minimum Amount of Staking Required for Each Tiers
   function _minAmount() 
     internal
     returns(uint[] memory) 
@@ -192,14 +197,16 @@ contract ExoToken is
     return minAmount;
   }
 
+  //Duration Mode Array
   function _arrayPeriod() 
     internal 
     returns(uint[] memory) 
   {
-    stakePeriod = [0, 10 minutes, 20 minutes, 30 days];
+    stakePeriod = [0, 10 minutes, 20 minutes, 30 minutes];
     return stakePeriod;
   }
 
+  //Normal EXO Reward Percent Array
   function _arrayPercent() 
     internal 
     returns(uint[] memory) 
@@ -208,6 +215,7 @@ contract ExoToken is
     return percent;
   }
 
+  //GCRED Reward Percent Array
   function _gcredAmount() 
     internal 
     returns(uint[] memory) 
@@ -216,6 +224,7 @@ contract ExoToken is
     return gcred;
   }
 
+  //Foundation Node Reward Percent Array
   function _percentOfFN()
     internal
     returns(uint[16] memory)
@@ -232,14 +241,14 @@ contract ExoToken is
     returns (bool) 
   {
     address owner = _msgSender();
+    uint[] memory min = _minAmount();
     
     if(tierStatus[msg.sender] > 0) {
-      uint[] memory min = _minAmount();
       uint ExoBalance = balanceOf(msg.sender);
       uint remainBalance = ExoBalance.sub(amount);
-      if(remainBalance < min[tierStatus[msg.sender]].mul(_decimals)) tierStatus[msg.sender] -= 1;
+      if(remainBalance < min[tierStatus[msg.sender]].mul(_decimals) && stakingCnt[msg.sender]<1) tierStatus[msg.sender] -= 1;
+        tierStatus[msg.sender] -= 1;
     }
-
     _transfer(owner, to, amount);
     return true;
   }
@@ -251,10 +260,19 @@ contract ExoToken is
     require(_amount <= balanceOf(msg.sender), "Not enough EXO token to stake");
     require(_duration < 4, "Duration not match");
 
+    uint stakingBalance;
+    uint[] memory min = _minAmount();
+
+    StakerInfo[] memory _getStakerInfo = getStakerInfo(msg.sender);
+    for(uint i = 0; i < _getStakerInfo.length; i ++) {
+      stakingBalance += _getStakerInfo[i].amount;
+    }
+
+    require((balanceOf(msg.sender) + stakingBalance) >= min[tierStatus[msg.sender]].mul(_decimals), "You need more EXO to stake in your tier level");
+
     if(msg.sender == FNwallet) {
       reward_from_FN = _amount.mul(75).div(1000).div(365);
     } else {
-      uint[] memory min = _minAmount();
       uint[] memory period = _arrayPeriod();
       blockTimeStamp = block.timestamp;
 
@@ -270,9 +288,10 @@ contract ExoToken is
           isSoftStaker,
           block.timestamp
       ));
-      tierCandidate[msg.sender] = _amount > min[tierStatus[msg.sender] + 1] ? true : false;
+      if(tierStatus[msg.sender] < 3 && min[tierStatus[msg.sender]+1].mul(_decimals) <_amount && _duration>tierStatus[msg.sender] )
+        tierCandidate[msg.sender] = true;
       stakerCnt ++;
-
+      stakingCnt[msg.sender]++;
     }
     
     transfer(address(this), _amount);
@@ -296,7 +315,7 @@ contract ExoToken is
   }
 
   function getStakerInfo(address _address) 
-    external 
+    public 
     view 
     whenNotPaused
     returns(StakerInfo[] memory) 
@@ -338,14 +357,14 @@ contract ExoToken is
       address _stakerAddr = _stakerInfo[i].owner;
       uint _stakerAmount = _stakerInfo[i].amount;
       uint _idx = _stakerInfo[i].interest;
-      _reward_fn[_idx] += 1;
       if(_stakerInfo[i].expireDate > block.timestamp) {
         if(block.timestamp - _stakerInfo[i].latestClaim >= _claimDelay) {
+          _reward_fn[_idx] += 1;
           uint _precent = getPercent[_stakerInfo[i].interest];
           uint reward = _calcReward(_stakerAmount, _precent);
           mint(_stakerAddr, reward);
 
-          uint gcredReward = getGcredAmount[_stakerInfo[i].interest].div(365000);
+          uint gcredReward = getGcredAmount[_stakerInfo[i].interest].mul(_decimals).div(1000);
           _sendGcred(_stakerAddr, gcredReward);
           _stakerInfo[i].latestClaim = block.timestamp;
           
@@ -353,15 +372,19 @@ contract ExoToken is
         }
 
       } else {
-        tierStatus[_stakerAddr] = tierCandidate[_stakerAddr] ?  tierStatus[_stakerAddr] + 1 : tierStatus[_stakerAddr];
-        tierCandidate[_stakerAddr];
+        if(_stakerInfo[i].duration>=tierStatus[_stakerAddr] && tierCandidate[_stakerAddr] ){
+          if(tierStatus[_stakerAddr]<3){
+            tierStatus[_stakerAddr] += 1;
+          }
+          tierCandidate[_stakerAddr] = false;
+        }
         stakerCnt--;
+        stakingCnt[_stakerAddr]--;
         uint len = _stakerInfo.length;
         _stakerInfo[i] = _stakerInfo[len-1];
         _stakerInfo.pop();
-
-        i = i == 0 ? 0 : i --;
-
+        if(i!=0)
+          i--;
         _transfer(address(this), _stakerAddr, _stakerAmount);
         emit UnStake(_stakerAddr, _stakerAmount, block.timestamp);
       }
@@ -383,7 +406,7 @@ contract ExoToken is
       if(_reward_fn[i] == 0) {
         _rewardAmountFn[i] = 0;
       } else {
-        _rewardAmountFn[i] = _reward_from_FN.mul(percentOfFn[i]).div(_reward_fn[i]);
+        _rewardAmountFn[i] = _reward_from_FN.mul(percentOfFn[i]).div(_reward_fn[i]).div(1000);
       }
     }
     for(uint i = 0; i < _stakerInfo.length; i ++) {
@@ -413,15 +436,16 @@ contract ExoToken is
     whenNotPaused
     returns(bool) 
   {
-    require(voteFlag[msg.sender], "Already voted");
+    require(!voteFlag[msg.sender], "Already voted");
     require(_voteID < votesCounter, "Not valid Vote ID");
     require(balanceOf(msg.sender) > 0, "No EXO holder");
     Vote storage tmp_vote = mapVote[_voteID];
     require(tmp_vote.endDate > block.timestamp, "Already expired");
+    require(tmp_vote.startDate <= block.timestamp, "Not started yet");
     require(_listID < tmp_vote.lists.length, "Not valid List ID");
     uint tier = tierStatus[msg.sender];
     uint balance = balanceOf(msg.sender);
-    uint voteValue = (tier.mul(tier + 1).div(2)).mul(balance);
+    uint voteValue = (1 + (tier.mul(tier + 1).div(2)).mul(25).div(100)).mul(balance);
     tmp_vote.lists[_listID].voteCnt += voteValue;
     voteFlag[msg.sender] = true;
     return true;

@@ -9,10 +9,6 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 
-interface IGcredToken {
-	function mintForReward(address to, uint256 amount) external;
-}
-
 contract GcredToken is
 	Initializable,
 	ERC20Upgradeable,
@@ -97,11 +93,10 @@ contract GcredToken is
 		EXO = newAddr;
 	}
 
-	function cutomTransfer(address to, uint256 amount, bool flag)
+	function cutomTransfer(address to, uint256 amount)
 		public
 		returns (bool)
 	{
-        require(flag, "Invalid Argument");
 		address _owner = _msgSender();
 		uint256 MDamount = amount.mul(2).div(100);
 		uint256 burnAmount = amount.mul(3).div(100);
@@ -115,8 +110,8 @@ contract GcredToken is
 
 	function buy_item(uint256 amount) public returns (bool) {
 		address _owner = _msgSender();
-		uint256 burnAmount = amount.mul(75).div(100);
-		uint256 MDamount = amount.mul(20).div(100);
+		uint256 burnAmount = amount.mul(70).div(100);
+		uint256 MDamount = amount.mul(25).div(100);
 		uint256 DAOamount = amount.mul(5).div(100);
 		_transfer(_owner, MDwallet, MDamount);
 		_transfer(_owner, DAOwallet, DAOamount);
@@ -127,4 +122,12 @@ contract GcredToken is
     function mintForReward(address to, uint256 amount) public mintAddr {
         _mint(to, amount);
     }
+
+	function setMDWallet(address newAddress) public onlyOwner{
+		MDwallet = newAddress;
+	}
+
+	function setDaoWallet(address newAddress) public onlyOwner{
+		DAOwallet = newAddress;
+	}
 }
