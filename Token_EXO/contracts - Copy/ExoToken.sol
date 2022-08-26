@@ -247,7 +247,6 @@ contract ExoToken is
       uint ExoBalance = balanceOf(msg.sender);
       uint remainBalance = ExoBalance.sub(amount);
       if(remainBalance < min[tierStatus[msg.sender]].mul(_decimals) && stakingCnt[msg.sender]<1) tierStatus[msg.sender] -= 1;
-        tierStatus[msg.sender] -= 1;
     }
     _transfer(owner, to, amount);
     return true;
