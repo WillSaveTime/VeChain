@@ -7,17 +7,20 @@ const TokenEth = artifacts.require('TokenEth');
 const BridgeEth = artifacts.require('BridgeEth');
 
 contract("EXO unit test", async(accounts, deployer) => {
+  let trans, proxyAdmin, tokenEth;
   const [alice, bob] = accounts;
 
   beforeEach(async() => {
-    await deployProxy(TokenEth, [], {deployer});
-    const tokenEth = await TokenEth.deployed();
-    await deployer.deploy(BridgeEth, tokenEth.address);
-    const bridgeEth = await BridgeEth.deployed();
-    await tokenEth.bridgeUpdateAdmin(bridgeEth.address);
+    trans = await TransparentUpgradeableProxy.deployed();
+    proxyAdmin = await ProxyAdmin.deployed();
+    tokenEth = await TokenEth.deployed();
+    await proxyAdmin.upgrade(trans.address, tokenEth.address);
+    eXO = await tokenEth.at(trans.address)
   })
 
-  describe("transfer", () => {
-    
+  describe("staking", () => {
+    it("should revert with message 'Not enought EXO token to stake'", async () => {
+      await eXO.deployed();
+    })
   })
 })
