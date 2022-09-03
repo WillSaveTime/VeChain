@@ -9,7 +9,6 @@
     "develop": "nodemon -e js,sol --exec truffle test"
   },
   "dependencies": {
-    "@chainlink/contracts": "^0.4.2",
     "@openzeppelin/contracts": "^4.5.0",
     "@openzeppelin/contracts-upgradeable": "^4.5.1",
     "@openzeppelin/test-helpers": "^0.5.15",

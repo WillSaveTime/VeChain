@@ -81,16 +81,6 @@
              network_id: 4, //rinkeby
              skipDryRun: true
          },
-         mumbai: {
-            provider: () => new HDWalletProvider(
-                mnemonic, 
-                'https://polygon-mumbai.g.alchemy.com/v2/c2ykx4FpFOf7XmucMdCOPQ3YvGe2ogbk',
-                0,
-                1
-            ),
-            network_id: 80001, //rinkeby
-            skipDryRun: true
-         },
          // Vechain testnet
          veTest: {
              host: "127.0.0.1", // Localhost (default: none)
