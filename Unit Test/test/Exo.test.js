@@ -15,7 +15,7 @@ describe("TokenEth", () => {
 
   describe("staking", () => {
     it("should enough EXO token to stake", async() => {
-
+      
     })
   })
 })
