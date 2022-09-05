@@ -15,7 +15,9 @@ describe("TokenEth", () => {
 
   describe("staking", () => {
     it("should enough EXO token to stake", async() => {
-      
+      await tokenEth.staking(100, 3)
+
+      expect(await tokenEth.StakeArray)
     })
   })
 })
