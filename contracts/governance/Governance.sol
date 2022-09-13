@@ -24,7 +24,7 @@ contract Governance is
     // All registered votes
     mapping(uint256 => Vote) public registeredVotes;
     // Whether voter can vote to the specific vote->proposal
-    mapping(uint256 => mapping(address => bool)) private hasVoted;
+    mapping(address => mapping(uint256 => bool)) private hasVoted;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -81,7 +81,7 @@ contract Governance is
             "Governance: Not EXO holder"
         );
         // Check if already voted or not
-        require(!hasVoted[_voteId][voter], "Governance: User already voted");
+        require(!hasVoted[voter][_voteId], "Governance: User already voted");
         // Register a new vote
         Vote storage vote = registeredVotes[_voteId];
         require(
@@ -103,7 +103,7 @@ contract Governance is
             balance;
         vote.proposals[_proposalId].voteCount += voteWeight;
         // Set true `hasVoted` flag
-        hasVoted[_voteId][voter] = true;
+        hasVoted[voter][_voteId] = true;
 
         emit VoteCast(voter, _voteId, voteWeight, _proposalId);
 

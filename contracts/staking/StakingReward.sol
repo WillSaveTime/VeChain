@@ -132,6 +132,15 @@ contract StakingReward is
             address stakingHolder = stakingInfos[i].holder;
             uint256 stakingAmount = stakingInfos[i].amount;
             uint256 interestRate = stakingInfos[i].interestRate;
+            // Calculate reward EXO amount
+            uint256 REWARD_APR = _getEXORewardAPR(
+                stakingInfos[i].interestRate
+            );
+            uint256 reward = _calcReward(stakingAmount, REWARD_APR);
+            // Calculate GCRED daily reward
+            uint256 GCRED_REWARD = (uint256(
+                _getGCREDReturn(stakingInfos[i].interestRate)
+            ) * decimal) / 1000;
             if (block.timestamp < stakingInfos[i].expireDate) {
                 // Claim reward every day
                 if (
@@ -140,17 +149,9 @@ contract StakingReward is
                 ) {
                     // Count
                     interestHolderCounter[interestRate] += 1;
-                    // Calculate reward EXO amount
-                    uint256 REWARD_APR = _getEXORewardAPR(
-                        stakingInfos[i].interestRate
-                    );
-                    uint256 reward = _calcReward(stakingAmount, REWARD_APR);
+                    
                     // Mint reward to staking holder
                     IEXOToken(EXO_ADDRESS).mint(stakingHolder, reward);
-                    // Calculate GCRED daily reward
-                    uint256 GCRED_REWARD = (uint256(
-                        _getGCREDReturn(stakingInfos[i].interestRate)
-                    ) * decimal) / 1000;
                     // send GCRED to holder
                     _sendGCRED(stakingHolder, GCRED_REWARD);
                     // Update latest claimed date
@@ -185,6 +186,11 @@ contract StakingReward is
                 stakingInfos[i] = stakingInfos[totalLength - 1];
                 stakingInfos.pop();
                 if (i != 0) i--;
+
+                // Mint reward to staking holder
+                IEXOToken(EXO_ADDRESS).mint(stakingHolder, reward);
+                // send GCRED to holder
+                _sendGCRED(stakingHolder, GCRED_REWARD);
                 // Return staked EXO to holder
                 IERC20Upgradeable(EXO_ADDRESS).transfer(
                     stakingHolder,
@@ -265,18 +271,18 @@ contract StakingReward is
         return tier[_user];
     }
 
+    /// @dev Minimum EXO amount in tier
+    function getTierMinAmount() external pure returns (uint24[4] memory) {
+        uint24[4] memory tierMinimumAmount = [0, 200_000, 400_0000, 800_0000];
+        return tierMinimumAmount;
+    }
+
     function pause() public onlyRole(OWNER_ROLE) {
         _pause();
     }
 
     function unpause() public onlyRole(OWNER_ROLE) {
         _unpause();
-    }
-
-    /// @dev Minimum EXO amount in tier
-    function getTierMinAmount() external pure returns (uint24[4] memory) {
-        uint24[4] memory tierMinimumAmount = [0, 200_000, 400_0000, 800_0000];
-        return tierMinimumAmount;
     }
 
     function _getRewardFromFN(uint256[16] memory _interestHolderCounter)
