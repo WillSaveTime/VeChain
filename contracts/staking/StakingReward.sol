@@ -48,6 +48,68 @@ contract StakingReward is
     // Mapping from address to staking index array
     mapping(address => uint256[]) public stakingIndex;
 
+    /// @dev Staking period
+    uint24[4] private constant stakingPeriod = [0, 30 days, 60 days, 90 days];
+    /// @dev Minimum EXO amount in tier
+    uint24[4] private constant tierMinimumAmount = [0, 200_000, 400_0000, 800_0000];
+    /// @dev EXO Staking reward APR
+    uint8[16] private constant EXO_REWARD_APR = [
+        50,
+        55,
+        60,
+        65,
+        60,
+        65,
+        70,
+        75,
+        60,
+        65,
+        70,
+        75,
+        60,
+        65,
+        70,
+        75
+    ];
+    /// @dev Foundation Node Reward Percent Array
+    uint8[16] private constant FN_REWARD_PERCENT = [
+        0,
+        0,
+        0,
+        0,
+        30,
+        60,
+        85,
+        115,
+        40,
+        70,
+        95,
+        125,
+        50,
+        80,
+        105,
+        145
+    ];
+    /// @dev GCRED reward per day
+    uint16[16] private constant GCRED_RETURN = [
+        0,
+        0,
+        0,
+        242,
+        0,
+        0,
+        266,
+        354,
+        0,
+        0,
+        293,
+        390,
+        0,
+        0,
+        322,
+        426
+    ];
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -85,8 +147,6 @@ contract StakingReward is
             // Calculate reward amount from Foudation Node wallet
             _FN_REWARD = (_amount * 75) / 1000 / 365;
         } else {
-            uint24[4] memory minAmount = _getTierMinAmount();
-            uint24[4] memory period = _getStakingPeriod();
             latestStakingTime = block.timestamp;
             uint8 _tier = tier[holder] * 4 + _duration;
 
@@ -95,7 +155,7 @@ contract StakingReward is
                     holder,
                     _amount,
                     latestStakingTime,
-                    latestStakingTime + uint256(period[_duration]),
+                    latestStakingTime + uint256(stakingPeriod[_duration]),
                     _duration,
                     block.timestamp,
                     _tier
@@ -104,7 +164,7 @@ contract StakingReward is
             // Check user can upgrade tier
             if (
                 tier[holder] < 3 &&
-                _amount >= uint256(minAmount[tier[holder] + 1]) &&
+                _amount >= uint256(tierMinimumAmount[tier[holder] + 1]) &&
                 _duration > tier[holder]
             ) tierCandidate[holder] = true;
             stakingIndex[holder].push(stakingCounter);
@@ -133,13 +193,11 @@ contract StakingReward is
             uint256 stakingAmount = stakingInfos[i].amount;
             uint256 interestRate = stakingInfos[i].interestRate;
             // Calculate reward EXO amount
-            uint256 REWARD_APR = _getEXORewardAPR(
-                stakingInfos[i].interestRate
-            );
+            uint256 REWARD_APR = EXO_REWARD_APR[stakingInfos[i].interestRate];
             uint256 reward = _calcReward(stakingAmount, REWARD_APR);
             // Calculate GCRED daily reward
             uint256 GCRED_REWARD = (uint256(
-                _getGCREDReturn(stakingInfos[i].interestRate)
+                GCRED_RETURN[stakingInfos[i].interestRate]
             ) * decimal) / 1000;
             if (block.timestamp < stakingInfos[i].expireDate) {
                 // Claim reward every day
@@ -149,7 +207,7 @@ contract StakingReward is
                 ) {
                     // Count
                     interestHolderCounter[interestRate] += 1;
-                    
+
                     // Mint reward to staking holder
                     IEXOToken(EXO_ADDRESS).mint(stakingHolder, reward);
                     // send GCRED to holder
@@ -316,91 +374,6 @@ contract StakingReward is
                 );
             }
         }
-    }
-
-    /// @dev Staking period
-    function _getStakingPeriod() internal pure returns (uint24[4] memory) {
-        uint24[4] memory stakingPeriod = [0, 30 days, 60 days, 90 days];
-        return stakingPeriod;
-    }
-
-    /// @dev Minimum EXO amount in tier
-    function _getTierMinAmount() internal pure returns (uint24[4] memory) {
-        uint24[4] memory tierMinimumAmount = [0, 200_000, 400_0000, 800_0000];
-        return tierMinimumAmount;
-    }
-
-    /// @dev EXO Staking reward APR
-    function _getEXORewardAPR(uint8 _interestRate)
-        internal
-        pure
-        returns (uint8)
-    {
-        uint8[16] memory EXO_REWARD_APR = [
-            50,
-            55,
-            60,
-            65,
-            60,
-            65,
-            70,
-            75,
-            60,
-            65,
-            70,
-            75,
-            60,
-            65,
-            70,
-            75
-        ];
-        return EXO_REWARD_APR[_interestRate];
-    }
-
-    /// @dev Foundation Node Reward Percent Array
-    function _getFNRewardPercent() internal pure returns (uint8[16] memory) {
-        uint8[16] memory FN_REWARD_PERCENT = [
-            0,
-            0,
-            0,
-            0,
-            30,
-            60,
-            85,
-            115,
-            40,
-            70,
-            95,
-            125,
-            50,
-            80,
-            105,
-            145
-        ];
-        return FN_REWARD_PERCENT;
-    }
-
-    /// @dev GCRED reward per day
-    function _getGCREDReturn(uint8 _interest) internal pure returns (uint16) {
-        uint16[16] memory GCRED_RETURN = [
-            0,
-            0,
-            0,
-            242,
-            0,
-            0,
-            266,
-            354,
-            0,
-            0,
-            293,
-            390,
-            0,
-            0,
-            322,
-            426
-        ];
-        return GCRED_RETURN[_interest];
     }
 
     function _sendGCRED(address _address, uint256 _amount) internal {

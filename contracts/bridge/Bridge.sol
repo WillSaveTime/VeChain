@@ -36,7 +36,7 @@ contract Bridge is Pausable, Ownable {
         uint256 otherChainNonce
     ) external onlyOwner {
         require(
-            _processedNonces[otherChainNonce] == false,
+            !_processedNonces[otherChainNonce],
             "transfer already processed"
         );
         _processedNonces[otherChainNonce] = true;

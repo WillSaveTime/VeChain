@@ -58,7 +58,10 @@ contract GCREDToken is
     }
 
     /// @inheritdoc IGCREDToken
-    function mintForReward(address to, uint256 amount) external onlyRole(EXO_ROLE) {
+    function mintForReward(address to, uint256 amount)
+        external
+        onlyRole(EXO_ROLE)
+    {
         _mint(to, amount);
     }
 

@@ -44,7 +44,7 @@ contract EXOToken is
         _grantRole(PAUSER_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, msg.sender);
 
-        uint256 _totalSupply = 10000000000 * (10 ** decimal);
+        uint256 _totalSupply = 10000000000 * (10**decimal);
     }
 
     function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) {
