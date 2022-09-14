@@ -49,11 +49,9 @@ contract StakingReward is
     mapping(address => uint256[]) public stakingIndex;
 
     /// @dev Staking period
-    uint24[4] private constant stakingPeriod = [0, 30 days, 60 days, 90 days];
-    /// @dev Minimum EXO amount in tier
-    uint24[4] private constant tierMinimumAmount = [0, 200_000, 400_0000, 800_0000];
+    uint256[4] private stakingPeriod = [0, 30 days, 60 days, 90 days];
     /// @dev EXO Staking reward APR
-    uint8[16] private constant EXO_REWARD_APR = [
+    uint8[16] private EXO_REWARD_APR = [
         50,
         55,
         60,
@@ -72,7 +70,7 @@ contract StakingReward is
         75
     ];
     /// @dev Foundation Node Reward Percent Array
-    uint8[16] private constant FN_REWARD_PERCENT = [
+    uint256[16] private FN_REWARD_PERCENT = [
         0,
         0,
         0,
@@ -91,7 +89,7 @@ contract StakingReward is
         145
     ];
     /// @dev GCRED reward per day
-    uint16[16] private constant GCRED_RETURN = [
+    uint16[16] private GCRED_RETURN = [
         0,
         0,
         0,
@@ -147,6 +145,7 @@ contract StakingReward is
             // Calculate reward amount from Foudation Node wallet
             _FN_REWARD = (_amount * 75) / 1000 / 365;
         } else {
+            uint24[4] memory minAmount = _getTierMinAmount();
             latestStakingTime = block.timestamp;
             uint8 _tier = tier[holder] * 4 + _duration;
 
@@ -164,7 +163,7 @@ contract StakingReward is
             // Check user can upgrade tier
             if (
                 tier[holder] < 3 &&
-                _amount >= uint256(tierMinimumAmount[tier[holder] + 1]) &&
+                _amount >= uint256(minAmount[tier[holder] + 1]) &&
                 _duration > tier[holder]
             ) tierCandidate[holder] = true;
             stakingIndex[holder].push(stakingCounter);
@@ -346,7 +345,6 @@ contract StakingReward is
     function _getRewardFromFN(uint256[16] memory _interestHolderCounter)
         internal
     {
-        uint8[16] memory FN_REWARD_PERCENT = _getFNRewardPercent();
         uint256[16] memory _rewardAmountFn;
         for (uint256 i = 0; i < FN_REWARD_PERCENT.length; i++) {
             if (_interestHolderCounter[i] == 0) {
@@ -388,4 +386,12 @@ contract StakingReward is
     {
         return (_amount * _percent) / 365000;
     }
+
+    /// @dev Minimum EXO amount in tier
+    function _getTierMinAmount() internal pure returns (uint24[4] memory) {
+        uint24[4] memory tierMinimumAmount = [0, 200_000, 400_0000, 800_0000];
+        return tierMinimumAmount;
+    }
+
+    
 }

@@ -23,6 +23,7 @@ contract EXOToken is
     bytes32 public constant BRIDGE_ROLE = keccak256("BRIDGE_ROLE");
 
     uint256 constant decimal = 1e18;
+    uint256 _totalSupply = 10000000000 * (10**decimal);
 
     address private stakingReward;
 
@@ -44,11 +45,17 @@ contract EXOToken is
         _grantRole(PAUSER_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, msg.sender);
 
-        uint256 _totalSupply = 10000000000 * (10**decimal);
     }
 
     function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) {
         _mint(to, amount);
+    }
+
+    /**
+     * @dev See {IERC20-totalSupply}.
+     */
+    function totalSupply() public view virtual override returns (uint256) {
+        return _totalSupply;
     }
 
     /// @inheritdoc IEXOToken
