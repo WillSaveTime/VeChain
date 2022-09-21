@@ -13,7 +13,6 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 contract GCREDToken is
     Initializable,
     IGCREDToken,
-    IPlanetNFT,
     ERC20Upgradeable,
     ERC20BurnableUpgradeable,
     PausableUpgradeable,
@@ -104,7 +103,6 @@ contract GCREDToken is
         DAO_ADDRESS = _DAO_ADDRESS;
     }
 
-    /// @inheridoc IPLANETNFT
     function setPLANETAddress(address _PLANET_ADDRESS) external onlyRole(OWNER_ROLE) {
         PLANET_ADDRESS = _PLANET_ADDRESS;
     }
@@ -173,7 +171,7 @@ contract GCREDToken is
     /// @dev Breakdown transaction amount to MD, DAO, burn
     /// @param amount Token amount
     /// @return success
-    function butItem(uint256 amount, uint256 tokenId) public returns (bool) {
+    function buyItem(uint256 amount, uint256 tokenId) public returns (bool) {
         address _owner = _msgSender();
         uint256 burnAmount = (amount * 70) / 100;
         uint256 MD_amount = (amount * 25) / 100;
