@@ -2,6 +2,7 @@
 pragma solidity 0.8.16;
 
 import "../interface/IGCREDToken.sol";
+import "../interface/IPlanetNFT.sol";
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
@@ -12,6 +13,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 contract GCREDToken is
     Initializable,
     IGCREDToken,
+    IPlanetNFT,
     ERC20Upgradeable,
     ERC20BurnableUpgradeable,
     PausableUpgradeable,
@@ -27,6 +29,8 @@ contract GCREDToken is
     address public DAO_ADDRESS;
     // EXO contract address
     address public EXO_ADDRESS;
+    //Planet NFT contract address
+    address public PLANET_ADDRESS;
 
     modifier onlyEXO() {
         require(msg.sender == EXO_ADDRESS);
@@ -41,7 +45,8 @@ contract GCREDToken is
     function initialize(
         address _MD_ADDRESS,
         address _DAO_ADDRESS,
-        address _EXO_ADDRESS
+        address _EXO_ADDRESS,
+        address _PLANET_ADDRESS
     ) public initializer {
         __ERC20_init("GCRED Token", "GCRED");
         __ERC20Burnable_init();
@@ -55,6 +60,7 @@ contract GCREDToken is
         MD_ADDRESS = _MD_ADDRESS;
         DAO_ADDRESS = _DAO_ADDRESS;
         EXO_ADDRESS = _EXO_ADDRESS;
+        PLANET_ADDRESS = _PLANET_ADDRESS;
     }
 
     /// @inheritdoc IGCREDToken
@@ -96,6 +102,11 @@ contract GCREDToken is
     /// @inheritdoc IGCREDToken
     function setDAOAddress(address _DAO_ADDRESS) external onlyRole(OWNER_ROLE) {
         DAO_ADDRESS = _DAO_ADDRESS;
+    }
+
+    /// @inheridoc IPLANETNFT
+    function setPLANETAddress(address _PLANET_ADDRESS) external onlyRole(OWNER_ROLE) {
+        PLANET_ADDRESS = _PLANET_ADDRESS;
     }
 
     function mint(address to, uint256 amount) public onlyRole(OWNER_ROLE) {
@@ -162,7 +173,7 @@ contract GCREDToken is
     /// @dev Breakdown transaction amount to MD, DAO, burn
     /// @param amount Token amount
     /// @return success
-    function butItem(uint256 amount) public returns (bool) {
+    function butItem(uint256 amount, uint256 tokenId) public returns (bool) {
         address _owner = _msgSender();
         uint256 burnAmount = (amount * 70) / 100;
         uint256 MD_amount = (amount * 25) / 100;
@@ -170,6 +181,7 @@ contract GCREDToken is
         _transfer(_owner, MD_ADDRESS, MD_amount);
         _transfer(_owner, DAO_ADDRESS, DAO_amount);
         _burn(_owner, burnAmount);
+        IPlanetNFT(PLANET_ADDRESS).safeMint(msg.sender, tokenId);
         return true;
     }
 }
